@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baraja Canaria - Envido y Tute</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Load Socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div id="app">
+    
+    <!-- LOBBY SCREEN -->
+    <div id="lobby-screen" class="screen">
+      <div class="lobby-card">
+        <h1>Cartas Canarias Online</h1>
+        <p class="subtitle">Juega Envido y Tute en tiempo real compartiendo el enlace</p>
+        
+        <div class="form-group">
+          <label for="player-name">Tu Nombre:</label>
+          <input type="text" id="player-name" placeholder="Escribe tu nombre..." maxlength="15">
+        </div>
+
+        <div class="form-group">
+          <label>Enlace para Compartir:</label>
+          <div class="share-link-box">
+            <input type="text" id="room-link" readonly>
+            <button id="btn-copy-link">Copiar</button>
+          </div>
+        </div>
+
+        <div class="game-setup">
+          <h3>Configuración de la Partida</h3>
+          <div class="setup-row">
+            <div class="setup-col">
+              <label for="select-game-type">Tipo de Juego:</label>
+              <select id="select-game-type">
+                <option value="envido">Envido Canario</option>
+                <option value="tute">Tute (3 jugadores)</option>
+              </select>
+            </div>
+            <div class="setup-col" id="envido-players-group">
+              <label for="select-envido-players">Jugadores:</label>
+              <select id="select-envido-players">
+                <option value="4">4 Jugadores (2 vs 2)</option>
+                <option value="6">6 Jugadores (3 vs 3)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="seating-section">
+          <h3>Selecciona tu Asiento</h3>
+          <p class="seating-tip">Los jugadores del mismo equipo deben sentarse de forma alterna (Equipo A: Asientos impares 1, 3... Equipo B: Asientos pares 2, 4...).</p>
+          <div id="seats-container" class="seats-grid">
+            <!-- Seat buttons will be rendered dynamically by JavaScript -->
+          </div>
+        </div>
+
+        <button id="btn-start-game" class="btn-primary" disabled>Esperando jugadores...</button>
+      </div>
+    </div>
+
+    <!-- GAME SCREEN -->
+    <div id="game-screen" class="screen hidden">
+      <!-- Header / Dashboard -->
+      <header class="game-header">
+        <div class="header-left">
+          <button id="btn-leave-room" class="btn-danger">Salir</button>
+          <span class="game-info-badge">Juego: <strong id="info-game-type">-</strong></span>
+          <span class="game-info-badge" id="team-badge" style="display: none;">Equipo: <strong id="info-team">-</strong></span>
+        </div>
+        
+        <!-- Scoreboard -->
+        <div id="scoreboard-envido" class="scoreboard" style="display: none;">
+          <div class="score-team team-a">
+            <span class="team-label">Equipo A (1, 3, 5)</span>
+            <span id="score-envido-a" class="points">0</span>
+          </div>
+          <div class="score-divider">vs</div>
+          <div class="score-team team-b">
+            <span class="team-label">Equipo B (2, 4, 6)</span>
+            <span id="score-envido-b" class="points">0</span>
+          </div>
+        </div>
+
+        <div id="scoreboard-tute" class="scoreboard" style="display: none;">
+          <div class="tute-scores-row" id="tute-scores-list">
+            <!-- Tute player scores rendered here -->
+          </div>
+        </div>
+
+        <div class="header-right">
+          <span class="turn-indicator" id="turn-indicator">Esperando turno...</span>
+        </div>
+      </header>
+
+      <!-- Main Game Board -->
+      <main class="board-container">
+        
+        <!-- The Table -->
+        <div class="poker-table">
+          <div class="table-felt">
+            <!-- The deck of cards and trump (Vira) in the center -->
+            <div class="center-cards">
+              <div class="deck-pile">
+                <div class="card-back-icon"></div>
+                <span class="card-count" id="deck-count">40</span>
+              </div>
+              <div class="vira-container">
+                <span class="label">Vira</span>
+                <div id="vira-card" class="card-placeholder"></div>
+              </div>
+            </div>
+
+            <!-- Player seats around the table dynamically placed -->
+            <div id="table-seats" class="table-seats">
+              <!-- Rendered dynamically by javascript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar panels (Chat & Señas) -->
+        <aside class="sidebar">
+          
+          <!-- ENVIDO SECRET SIGNS PANEL -->
+          <div id="signs-panel" class="panel hidden">
+            <h3>Señas Secretas (Tu Equipo)</h3>
+            <div class="signs-status-bar">
+              <span>Director: <strong id="director-name">-</strong></span>
+              <span id="is-director-label" class="badge hidden">Tú eres el Director</span>
+            </div>
+
+            <!-- Panel for normal players to send signs to their director -->
+            <div id="player-signs-controls" class="signs-grid-controls">
+              <p class="panel-desc">Haz señas al director para indicarle tus cartas de triunfo:</p>
+              <button class="btn-sign" data-sign="Mala">👅 Mala (2 Triunfo)</button>
+              <button class="btn-sign" data-sign="Rey">🤨 Rey (12 Triunfo)</button>
+              <button class="btn-sign" data-sign="Caballo">👄 Caballo (11 Triunfo)</button>
+              <button class="btn-sign" data-sign="Un Fisco">👌 Un Fisco (1 Triunfo chico)</button>
+              <button class="btn-sign" data-sign="2 Fiscos">✌️ 2 Fiscos (2 Triunfos chicos)</button>
+            </div>
+
+            <!-- Panel for the director to order plays -->
+            <div id="director-controls" class="director-grid-controls hidden">
+              <p class="panel-desc">Estrategia: Dale órdenes a tus jugadores:</p>
+              <button class="btn-order" data-order="Tira tu carta mas alta">🔥 Tira carta alta</button>
+              <button class="btn-order" data-order="Tira tu carta mas baja">❄️ Tira carta baja</button>
+              <button class="btn-order" data-order="Guarda el triunfo">🛡️ Guarda el triunfo</button>
+              <button class="btn-order" data-order="Tira triunfo si tienes">⚡ Tira triunfo</button>
+              <button class="btn-order" data-order="Espera a ver que tiran">👀 Espera</button>
+            </div>
+
+            <!-- Secret team communication log -->
+            <div class="secret-log-box">
+              <h4>Historial del Equipo (Secreto)</h4>
+              <div id="team-secret-log" class="log-messages"></div>
+            </div>
+          </div>
+
+          <!-- TUTE DECLARATIONS PANEL -->
+          <div id="tute-declarations-panel" class="panel hidden">
+            <h3>Cantos de Tute</h3>
+            <div class="tute-buttons">
+              <button id="btn-tute-40" class="btn-action btn-gold" disabled>Cantar las 40 (40 pts)</button>
+              <button id="btn-tute-20" class="btn-action btn-silver" disabled>Cantar las 20 (20 pts)</button>
+              <button id="btn-tute-declarar" class="btn-action btn-danger" disabled>¡CANTAR TUTE! (Victoria)</button>
+            </div>
+          </div>
+
+          <!-- CHAT & ACTION LOG -->
+          <div class="panel chat-panel">
+            <h3>Registro de la Partida</h3>
+            <div id="game-log" class="log-messages"></div>
+            <div class="chat-input-box">
+              <input type="text" id="chat-input" placeholder="Mensaje público...">
+              <button id="btn-send-chat">Enviar</button>
+            </div>
+          </div>
+        </aside>
+
+      </main>
+
+      <!-- Player Hand & Play Controls -->
+      <footer class="player-controls">
+        <div class="hand-container">
+          <div class="hand-header">
+            <span>Tus Cartas (Haz doble clic o selecciona y presiona Tirar)</span>
+            <span id="player-role-indicator"></span>
+          </div>
+          <div id="player-hand" class="hand-cards">
+            <!-- Cards will render here -->
+          </div>
+        </div>
+        <div class="play-actions">
+          <button id="btn-play-card" class="btn-primary-large" disabled>Tirar Carta</button>
+        </div>
+      </footer>
+    </div>
+
+  </div>
+
+  <!-- Load Card Vector Graphics and Game Client script -->
+  <script src="svg-cards.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

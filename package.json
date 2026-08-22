@@ -1,0 +1,13 @@
+{
+  "name": "cartas-canarias",
+  "version": "1.0.0",
+  "description": "Juego online de Envido y Tute de las Islas Canarias con comunicacion de senas y baraja espanola SVG.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
