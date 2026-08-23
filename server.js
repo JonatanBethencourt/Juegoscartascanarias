@@ -655,6 +655,172 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('voice_player_ready', { socketId: socket.id });
   });
 
+  // COUNT POINTS FOR TUTE (Triggered manually by players clicking "Contar")
+  socket.on('count_points', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameType !== 'tute') return;
+    const gs = room.gameState;
+    if (gs.status !== 'round_end_counting') return;
+
+    // 10 extra points for the winner of the last trick
+    const lastTrickWinner = gs.tricks[gs.tricks.length - 1].winnerSeat;
+    gs.tuteRoundScores[lastTrickWinner] += 10;
+    
+    io.to(room.id).emit('log_message', { 
+      text: `✨ ${room.players.find(p=>p.seat === lastTrickWinner).name} gana las diez de últimas (+10 pts).`, 
+      type: 'system' 
+    });
+
+    // Add cantos to round scores
+    room.players.forEach(p => {
+      const cantos = gs.tuteCantos[p.seat] || [];
+      cantos.forEach(c => {
+        gs.tuteRoundScores[p.seat] += c.points;
+      });
+    });
+
+    // List scores
+    const playerScores = room.players.map(p => ({
+      seat: p.seat,
+      name: p.name,
+      score: gs.tuteRoundScores[p.seat]
+    }));
+
+    if (room.maxPlayers === 2) {
+      io.to(room.id).emit('log_message', { 
+        text: `📊 Puntuaciones de esta ronda: ${playerScores[0].name}: ${playerScores[0].score} | ${playerScores[1].name}: ${playerScores[1].score}`, 
+        type: 'system' 
+      });
+
+      let loserSeat;
+      let loserName;
+      if (playerScores[0].score === playerScores[1].score) {
+        loserSeat = lastTrickWinner === 0 ? 1 : 0;
+        const loserPlayer = room.players.find(p => p.seat === loserSeat);
+        loserName = loserPlayer ? loserPlayer.name : `Asiento ${loserSeat + 1}`;
+        io.to(room.id).emit('log_message', { text: `¡Empate a puntos! Desempata el ganador de las diez de últimas.`, type: 'system' });
+      } else {
+        const sorted = [...playerScores].sort((a, b) => a.score - b.score);
+        loserSeat = sorted[0].seat;
+        loserName = sorted[0].name;
+      }
+
+      gs.tuteMatchPoints[loserSeat]++;
+      io.to(room.id).emit('log_message', { text: `💀 ${loserName} tiene menos puntos y pierde esta ronda (Suma 1 punto de derrota).`, type: 'system' });
+
+    } else {
+      playerScores.sort((a, b) => a.score - b.score);
+      const lowest = playerScores[0];
+      const middle = playerScores[1];
+      const highest = playerScores[2];
+
+      io.to(room.id).emit('log_message', { 
+        text: `📊 Puntuaciones de esta ronda: ${lowest.name}: ${lowest.score} | ${middle.name}: ${middle.score} | ${highest.name}: ${highest.score}`, 
+        type: 'system' 
+      });
+
+      let loserSeat = middle.seat;
+      let loserName = middle.name;
+
+      if (middle.score === lowest.score && middle.score === highest.score) {
+        io.to(room.id).emit('log_message', { text: `¡Empate triple de puntos! Todos los jugadores se salvan.`, type: 'system' });
+      } else if (middle.score === lowest.score) {
+        gs.tuteMatchPoints[middle.seat]++;
+        gs.tuteMatchPoints[lowest.seat]++;
+        io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${lowest.name}!`, type: 'system' });
+      } else if (middle.score === highest.score) {
+        gs.tuteMatchPoints[middle.seat]++;
+        gs.tuteMatchPoints[highest.seat]++;
+        io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${highest.name}!`, type: 'system' });
+      } else {
+        gs.tuteMatchPoints[loserSeat]++;
+        io.to(room.id).emit('log_message', { text: `💀 ${loserName} es el del medio y pierde esta ronda (Suma 1 punto de derrota).`, type: 'system' });
+      }
+    }
+
+    // Check match end (3 defeat points)
+    let gameEnded = false;
+    room.players.forEach(p => {
+      if (gs.tuteMatchPoints[p.seat] >= 3) {
+        gameEnded = true;
+      }
+    });
+
+    if (gameEnded) {
+      gs.status = 'game_end';
+      io.to(room.id).emit('log_message', { 
+        text: `🏆 ¡Fin de la partida! Alguien alcanzó 3 puntos de derrota.`, 
+        type: 'system' 
+      });
+    } else {
+      gs.status = 'round_results';
+    }
+
+    io.to(room.id).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: gs
+    });
+  });
+
+  // GO TO NEXT ROUND (Tute)
+  socket.on('next_round', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameType !== 'tute') return;
+    const gs = room.gameState;
+    if (gs.status !== 'round_results') return;
+
+    startNewRound(room);
+    
+    io.to(room.id).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: gs
+    });
+  });
+
+  // RESET GAME TO LOBBY (Nueva Partida)
+  socket.on('reset_game', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    room.gameState = {
+      status: 'lobby',
+      deck: [],
+      hands: {},
+      playedCards: [],
+      viraCard: null,
+      trumpSuit: null,
+      currentTurn: 0,
+      leadPlayerSeat: 0,
+      tricks: [],
+      scores: { teamA: 0, teamB: 0 },
+      envidoRoundScore: { teamA: 0, teamB: 0 },
+      tuteRoundScores: room.players.map(() => 0),
+      tuteMatchPoints: room.players.map(() => 0),
+      tuteCantos: room.players.map(() => []),
+      deckCount: 0
+    };
+
+    room.players.forEach(p => {
+      if (p) {
+        p.isDirector = false;
+        p.team = null;
+      }
+    });
+
+    io.to(roomId).emit('log_message', { text: `🔄 La partida ha sido reiniciada. Se ha vuelto al lobby.`, type: 'system' });
+    
+    io.to(roomId).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: room.gameState
+    });
+  });
+
   // CHAT MESSAGE
   socket.on('chat_message', ({ roomId, message }) => {
     const player = rooms[roomId]?.players.find(p => p && p.socketId === socket.id);
@@ -768,7 +934,22 @@ function evaluateTrick(room) {
   // Check if round is over (3 tricks in Envido, 20 in 2-player Tute, 13 in 3-player Tute)
   const maxTricks = room.gameType === 'envido' ? 3 : (room.maxPlayers === 2 ? 20 : 13);
   if (gs.tricks.length === maxTricks) {
-    evaluateRoundEnd(room);
+    if (room.gameType === 'envido') {
+      evaluateRoundEnd(room);
+    } else {
+      // Tute: Transition to round_end_counting. Wait for a player to click the "Contar" button.
+      gs.status = 'round_end_counting';
+      io.to(room.id).emit('room_state', {
+        gameType: room.gameType,
+        maxPlayers: room.maxPlayers,
+        players: room.players,
+        gameState: gs
+      });
+      io.to(room.id).emit('log_message', { 
+        text: '🏁 ¡Ronda finalizada! Haced clic en el botón "Contar Puntos" para revelar las puntuaciones.', 
+        type: 'system' 
+      });
+    }
   } else {
     // Sync state for next trick
     io.to(room.id).emit('room_state', {
@@ -821,122 +1002,6 @@ function evaluateRoundEnd(room) {
       });
     } else {
       // Setup for next round
-      startNewRound(room);
-    }
-
-  } else if (room.gameType === 'tute') {
-    // 10 extra points for the winner of the last trick
-    const lastTrickWinner = gs.tricks[gs.tricks.length - 1].winnerSeat;
-    gs.tuteRoundScores[lastTrickWinner] += 10;
-    
-    io.to(room.id).emit('log_message', { 
-      text: `✨ ${room.players.find(p=>p.seat === lastTrickWinner).name} gana las diez de últimas (+10 pts).`, 
-      type: 'system' 
-    });
-
-    // Add cantos to round scores
-    room.players.forEach(p => {
-      const cantos = gs.tuteCantos[p.seat] || [];
-      cantos.forEach(c => {
-        gs.tuteRoundScores[p.seat] += c.points;
-      });
-    });
-
-    if (room.maxPlayers === 2) {
-      // 2 Players: The player with the LOWER score loses (gets 1 defeat point)
-      const playerScores = room.players.map(p => ({
-        seat: p.seat,
-        name: p.name,
-        score: gs.tuteRoundScores[p.seat]
-      }));
-
-      io.to(room.id).emit('log_message', { 
-        text: `📊 Puntuaciones de esta ronda: ${playerScores[0].name}: ${playerScores[0].score} | ${playerScores[1].name}: ${playerScores[1].score}`, 
-        type: 'system' 
-      });
-
-      let loserSeat;
-      let loserName;
-      if (playerScores[0].score === playerScores[1].score) {
-        // Tie breaker: winner of last trick wins, other loses
-        const lastTrickWinner = gs.tricks[gs.tricks.length - 1].winnerSeat;
-        loserSeat = lastTrickWinner === 0 ? 1 : 0;
-        const loserPlayer = room.players.find(p => p.seat === loserSeat);
-        loserName = loserPlayer ? loserPlayer.name : `Asiento ${loserSeat + 1}`;
-        io.to(room.id).emit('log_message', { text: `¡Empate a puntos! Desempata el ganador de las diez de últimas.`, type: 'system' });
-      } else {
-        // Find lower score
-        const sorted = [...playerScores].sort((a, b) => a.score - b.score);
-        loserSeat = sorted[0].seat;
-        loserName = sorted[0].name;
-      }
-
-      gs.tuteMatchPoints[loserSeat]++;
-      io.to(room.id).emit('log_message', { text: `💀 ${loserName} tiene menos puntos y pierde esta ronda (Suma 1 punto de derrota).`, type: 'system' });
-
-    } else {
-      // Determine Tute Cabrero: Player in the middle loses (gains a poroto/point)
-      // List scores: [ { seat, score }, ... ]
-      const playerScores = room.players.map(p => ({
-        seat: p.seat,
-        name: p.name,
-        score: gs.tuteRoundScores[p.seat]
-      }));
-
-      // Sort scores ascending
-      playerScores.sort((a, b) => a.score - b.score);
-
-      const lowest = playerScores[0];
-      const middle = playerScores[1];
-      const highest = playerScores[2];
-
-      io.to(room.id).emit('log_message', { 
-        text: `📊 Puntuaciones de esta ronda: ${lowest.name}: ${lowest.score} | ${middle.name}: ${middle.score} | ${highest.name}: ${highest.score}`, 
-        type: 'system' 
-      });
-
-      // The middle player loses!
-      // Check if there are ties
-      let loserSeat = middle.seat;
-      let loserName = middle.name;
-
-      if (middle.score === lowest.score && middle.score === highest.score) {
-        // 3-way tie!
-        io.to(room.id).emit('log_message', { text: `¡Empate triple de puntos! Todos los jugadores se salvan.`, type: 'system' });
-      } else if (middle.score === lowest.score) {
-        // Tie for middle and lowest. Both lose.
-        gs.tuteMatchPoints[middle.seat]++;
-        gs.tuteMatchPoints[lowest.seat]++;
-        io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${lowest.name}!`, type: 'system' });
-      } else if (middle.score === highest.score) {
-        // Tie for middle and highest. Both lose.
-        gs.tuteMatchPoints[middle.seat]++;
-        gs.tuteMatchPoints[highest.seat]++;
-        io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${highest.name}!`, type: 'system' });
-      } else {
-        // Standard single middle loser
-        gs.tuteMatchPoints[loserSeat]++;
-        io.to(room.id).emit('log_message', { text: `💀 ${loserName} es el del medio y pierde esta ronda (Suma 1 punto de derrota).`, type: 'system' });
-      }
-    }
-
-    // Check if anyone has reached 3 defeat points (match end)
-    let gameEnded = false;
-    room.players.forEach(p => {
-      if (gs.tuteMatchPoints[p.seat] >= 3) {
-        gameEnded = true;
-      }
-    });
-
-    if (gameEnded) {
-      gs.status = 'game_end';
-      // Find the player with the most defeats (or all players list)
-      io.to(room.id).emit('log_message', { 
-        text: `🏆 ¡Fin de la partida! Alguien alcanzo 3 puntos de derrota.`, 
-        type: 'system' 
-      });
-    } else {
-      // Start next round
       startNewRound(room);
     }
   }

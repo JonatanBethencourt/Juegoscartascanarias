@@ -422,6 +422,8 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
       
       const matchDeafeats = gameState.tuteMatchPoints[p.seat] || 0;
       const roundScore = gameState.tuteRoundScores[p.seat] || 0;
+      const showScores = (gameState.status === 'round_results' || gameState.status === 'game_end');
+      const scoreDisplay = showScores ? `${roundScore} pts` : '❓ pts';
       
       // Draw red dots/crosses for defeat points (porotos)
       let defeatsStr = '⚪⚪⚪';
@@ -431,7 +433,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
 
       scoreItem.innerHTML = `
         <span class="tute-score-name">${p.name}</span>
-        <span class="tute-score-pts">${roundScore} pts</span>
+        <span class="tute-score-pts">${scoreDisplay}</span>
         <span style="font-size: 0.65rem;">${defeatsStr}</span>
       `;
       tuteScoresList.appendChild(scoreItem);
@@ -550,11 +552,49 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
   }
 
   // Tute declarations
-  if (gameType === 'tute' && mySeat !== null) {
+  if (gameType === 'tute' && mySeat !== null && gameState.status === 'playing') {
     tuteDeclarationsPanel.classList.remove('hidden');
     checkTuteCantoOptions(gameState);
   } else {
     tuteDeclarationsPanel.classList.add('hidden');
+  }
+
+  // Round Actions Panel (Control de Partida)
+  const roundActionsPanel = document.getElementById('round-actions-panel');
+  const btnCountPoints = document.getElementById('btn-count-points');
+  const btnNextRound = document.getElementById('btn-next-round');
+  const btnNewGame = document.getElementById('btn-new-game');
+
+  let showRoundActionsPanel = false;
+
+  // 1. Contar Puntos button: Tute only, during round_end_counting status
+  if (gameType === 'tute' && gameState.status === 'round_end_counting') {
+    btnCountPoints.style.display = 'block';
+    showRoundActionsPanel = true;
+  } else {
+    btnCountPoints.style.display = 'none';
+  }
+
+  // 2. Siguiente Ronda button: Tute only, during round_results status
+  if (gameType === 'tute' && gameState.status === 'round_results') {
+    btnNextRound.style.display = 'block';
+    showRoundActionsPanel = true;
+  } else {
+    btnNextRound.style.display = 'none';
+  }
+
+  // 3. Nueva Partida button: Any game, during game_end status
+  if (gameState.status === 'game_end') {
+    btnNewGame.style.display = 'block';
+    showRoundActionsPanel = true;
+  } else {
+    btnNewGame.style.display = 'none';
+  }
+
+  if (showRoundActionsPanel) {
+    roundActionsPanel.classList.remove('hidden');
+  } else {
+    roundActionsPanel.classList.add('hidden');
   }
 
   // 7. Render Player Hand
@@ -976,6 +1016,19 @@ socket.on('disconnect_peer_voice', ({ socketId }) => {
   }
   const wrapper = document.getElementById(`video-wrapper-${socketId}`);
   if (wrapper) wrapper.remove();
+});
+
+// Bind click events for Partida control panel
+document.getElementById('btn-count-points').addEventListener('click', () => {
+  socket.emit('count_points', { roomId });
+});
+
+document.getElementById('btn-next-round').addEventListener('click', () => {
+  socket.emit('next_round', { roomId });
+});
+
+document.getElementById('btn-new-game').addEventListener('click', () => {
+  socket.emit('reset_game', { roomId });
 });
 
 // JOIN INITIAL ROOM ON LOAD
