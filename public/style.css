@@ -393,7 +393,7 @@ body {
   display: flex;
   position: relative;
   overflow: hidden;
-  height: calc(100vh - 240px);
+  height: calc(100vh - 280px);
 }
 
 /* THE FELT TABLE */
@@ -433,8 +433,8 @@ body {
 }
 
 .deck-pile {
-  width: 60px;
-  height: 90px;
+  width: 80px;
+  height: 120px;
   background: #2e7d32;
   border: 2px solid rgba(255,255,255,0.2);
   border-radius: 6px;
@@ -446,8 +446,8 @@ body {
 }
 
 .card-back-icon {
-  width: 48px;
-  height: 78px;
+  width: 68px;
+  height: 108px;
   background: #1b5e20;
   border: 2px dashed rgba(255,255,255,0.4);
   border-radius: 4px;
@@ -479,8 +479,8 @@ body {
 }
 
 .card-placeholder {
-  width: 60px;
-  height: 90px;
+  width: 80px;
+  height: 120px;
   border: 2px dashed rgba(255,255,255,0.3);
   border-radius: 6px;
   display: flex;
@@ -497,8 +497,8 @@ body {
 
 .player-spot {
   position: absolute;
-  width: 130px;
-  height: 140px;
+  width: 150px;
+  height: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -593,8 +593,8 @@ body {
 }
 
 .player-spot .played-card-slot {
-  width: 55px;
-  height: 82px;
+  width: 75px;
+  height: 112px;
   margin-top: 10px;
   border: 2px dashed rgba(255,255,255,0.15);
   border-radius: 5px;
@@ -801,7 +801,7 @@ body {
 
 /* FOOTER CONTROL / HAND */
 .player-controls {
-  height: 180px;
+  height: 220px;
   background: #101010;
   border-top: 1px solid var(--border-color);
   display: flex;
@@ -840,8 +840,8 @@ body {
 
 /* Card representation inside hand */
 .hand-cards .card-svg {
-  width: 90px;
-  height: 135px;
+  width: 120px;
+  height: 180px;
   cursor: pointer;
   box-shadow: 0 4px 8px rgba(0,0,0,0.4);
   border-radius: 10px;
@@ -904,7 +904,7 @@ body {
   
   .player-spot {
     width: 90px;
-    height: 110px;
+    height: 130px;
   }
   
   .player-spot .player-avatar {
@@ -914,8 +914,8 @@ body {
   }
   
   .player-spot .played-card-slot {
-    width: 40px;
-    height: 60px;
+    width: 50px;
+    height: 75px;
   }
   
   /* Circle Positions for 6 Players Mobile */
@@ -927,13 +927,13 @@ body {
   .player-spot.spot-5 { bottom: 60px; right: 5px; }
 
   .player-controls {
-    height: 150px;
+    height: 180px;
     padding: 8px 10px;
   }
 
   .hand-cards .card-svg {
-    width: 75px;
-    height: 110px;
+    width: 90px;
+    height: 135px;
   }
   
   .play-actions {
