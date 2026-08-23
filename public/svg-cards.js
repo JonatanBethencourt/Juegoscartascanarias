@@ -512,8 +512,18 @@
     const selectedStyle = isSelected ? 'box-shadow: 0 0 20px #ffeb3b; transform: translateY(-18px); transition: all 0.25s;' : 'transition: all 0.25s;';
     const borderHighlight = isSelected ? 'stroke="#ffeb3b" stroke-width="4"' : '';
 
+    const suitNames = { oros: 'Oros', copas: 'Copas', espadas: 'Espadas', bastos: 'Bastos' };
+    const numberNames = {
+      1: 'As', 2: 'Dos', 3: 'Tres', 4: 'Cuatro', 5: 'Cinco', 6: 'Seis', 7: 'Siete',
+      10: 'Sota', 11: 'Caballo', 12: 'Rey'
+    };
+    const sName = suitNames[suit.toLowerCase()] || suit;
+    const nName = numberNames[number] || number;
+    const cardTitle = isFlipped ? 'Carta boca abajo' : `${nName} de ${sName}`;
+
     return `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" class="card-svg ${customClass} ${isSelected ? 'selected' : ''}" style="width: 100%; height: 100%; display: block; ${selectedStyle}">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" class="card-svg ${customClass} ${isSelected ? 'selected' : ''}" style="width: 100%; height: 100%; display: block; ${selectedStyle}" title="${cardTitle}">
+        <title>${cardTitle}</title>
         <defs>
           <radialGradient id="goldGradient" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
             <stop offset="0%" stop-color="#fffde7" />

@@ -310,6 +310,52 @@ function alertFlash(text) {
   }, 2500);
 }
 
+// Get readable Spanish card name (with point values for Tute)
+function getCardNameSpanish(card) {
+  if (!card) return '';
+  const suitNames = {
+    oros: 'Oros',
+    copas: 'Copas',
+    espadas: 'Espadas',
+    bastos: 'Bastos'
+  };
+  const numberNames = {
+    1: 'As',
+    2: 'Dos',
+    3: 'Tres',
+    4: 'Cuatro',
+    5: 'Cinco',
+    6: 'Seis',
+    7: 'Siete',
+    10: 'Sota',
+    11: 'Caballo',
+    12: 'Rey'
+  };
+  
+  let ptsStr = '';
+  if (roomState && roomState.gameType === 'tute') {
+    let pts = 0;
+    if (roomState.maxPlayers === 2) {
+      if (card.number === 1) pts = 11;
+      else if (card.number === 2) pts = 10;
+      else if (card.number === 12) pts = 4;
+      else if (card.number === 11) pts = 3;
+      else if (card.number === 10) pts = 2;
+    } else {
+      if (card.number === 1) pts = 11;
+      else if (card.number === 3) pts = 10;
+      else if (card.number === 12) pts = 4;
+      else if (card.number === 11) pts = 3;
+      else if (card.number === 10) pts = 2;
+    }
+    ptsStr = ` (${pts} pts)`;
+  }
+  
+  const numName = numberNames[card.number] || card.number;
+  const suitName = suitNames[card.suit.toLowerCase()] || card.suit;
+  return `${numName} de ${suitName}${ptsStr}`;
+}
+
 // MAIN ROOM STATE SYNCHRONIZATION
 socket.on('room_state', ({ gameType, maxPlayers, players, gameState }) => {
   roomState = { gameType, maxPlayers, players, gameState };
@@ -412,6 +458,13 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
   
   if (gameState.viraCard) {
     viraCardSlot.innerHTML = window.createCardSVG(gameState.viraCard.suit, gameState.viraCard.number);
+    const viraSvg = viraCardSlot.firstElementChild;
+    if (viraSvg) {
+      viraSvg.style.cursor = 'pointer';
+      viraSvg.addEventListener('click', () => {
+        alertFlash(`📢 Triunfo (Vira): ${getCardNameSpanish(gameState.viraCard)}`);
+      });
+    }
   } else {
     viraCardSlot.innerHTML = '';
   }
@@ -464,6 +517,13 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
       const slot = document.getElementById(`played-card-seat-${i}`);
       if (slot) {
         slot.innerHTML = window.createCardSVG(played.card.suit, played.card.number);
+        const playedSvg = slot.firstElementChild;
+        if (playedSvg) {
+          playedSvg.style.cursor = 'pointer';
+          playedSvg.addEventListener('click', () => {
+            alertFlash(`🃏 Carta de ${player.name}: ${getCardNameSpanish(played.card)}`);
+          });
+        }
       }
     }
   }
@@ -521,8 +581,8 @@ function renderPlayerHand(gameState) {
 
   hand.forEach(card => {
     const cardWrapper = document.createElement('div');
-    cardWrapper.style.width = '90px';
-    cardWrapper.style.height = '135px';
+    cardWrapper.style.width = '120px';
+    cardWrapper.style.height = '180px';
     
     const isSelected = (selectedCard && selectedCard.suit === card.suit && selectedCard.number === card.number);
     
@@ -535,6 +595,7 @@ function renderPlayerHand(gameState) {
       if (gameState.status !== 'playing') return;
       selectedCard = card;
       renderPlayerHand(gameState); // Redraw hand to show selection border
+      alertFlash(`🃏 Has seleccionado: ${getCardNameSpanish(card)}`);
     });
 
     // Play Card Double-Click
