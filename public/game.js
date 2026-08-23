@@ -752,7 +752,7 @@ const rtcConfig = {
         'turn:openrelay.metered.ca:443?transport=tcp'
       ],
       username: 'openrelayproject',
-      password: 'openrelayproject'
+      credential: 'openrelayproject'
     }
   ]
 };
