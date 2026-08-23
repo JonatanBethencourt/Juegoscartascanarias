@@ -1082,21 +1082,33 @@ function toggleCam() {
   logMsg(isVideoEnabled ? "📷 Cámara activada." : "📷 Cámara desactivada.", "system");
 }
 
-document.getElementById('btn-toggle-mic').addEventListener('click', toggleMic);
-document.getElementById('btn-toggle-cam').addEventListener('click', toggleCam);
+const elToggleMic = document.getElementById('btn-toggle-mic');
+if (elToggleMic) elToggleMic.addEventListener('click', toggleMic);
+
+const elToggleCam = document.getElementById('btn-toggle-cam');
+if (elToggleCam) elToggleCam.addEventListener('click', toggleCam);
 
 // Bind click events for Partida control panel
-document.getElementById('btn-count-points').addEventListener('click', () => {
-  socket.emit('count_points', { roomId });
-});
+const elCountPoints = document.getElementById('btn-count-points');
+if (elCountPoints) {
+  elCountPoints.addEventListener('click', () => {
+    socket.emit('count_points', { roomId });
+  });
+}
 
-document.getElementById('btn-next-round').addEventListener('click', () => {
-  socket.emit('next_round', { roomId });
-});
+const elNextRound = document.getElementById('btn-next-round');
+if (elNextRound) {
+  elNextRound.addEventListener('click', () => {
+    socket.emit('next_round', { roomId });
+  });
+}
 
-document.getElementById('btn-new-game').addEventListener('click', () => {
-  socket.emit('reset_game', { roomId });
-});
+const elNewGame = document.getElementById('btn-new-game');
+if (elNewGame) {
+  elNewGame.addEventListener('click', () => {
+    socket.emit('reset_game', { roomId });
+  });
+}
 
 // JOIN INITIAL ROOM ON LOAD
 window.onload = () => {
