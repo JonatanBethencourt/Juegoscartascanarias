@@ -740,7 +740,8 @@ if (btnGameVoice) btnGameVoice.addEventListener('click', connectVoiceChat);
 // Create peer connection with another client
 function createPeerConnection(peerId, isInitiator) {
   const pc = new RTCPeerConnection(rtcConfig);
-  
+  pc.iceQueue = []; // Queue to store ICE candidates received before setRemoteDescription
+
   if (voiceStream) {
     voiceStream.getTracks().forEach(track => pc.addTrack(track, voiceStream));
   }
@@ -757,13 +758,24 @@ function createPeerConnection(peerId, isInitiator) {
       audioEl = document.createElement('audio');
       audioEl.id = `audio-peer-${peerId}`;
       audioEl.autoplay = true;
+      audioEl.setAttribute('playsinline', 'true');
       document.body.appendChild(audioEl);
     }
     audioEl.srcObject = event.streams[0];
+    
+    // Explicitly play stream and handle autoplay restrictions
+    audioEl.play().catch(err => {
+      console.warn("Autoplay de audio bloqueado por el navegador. Se reproducira al hacer click.", err);
+      const playOnInteraction = () => {
+        audioEl.play().catch(e => console.error("Fallo de reproduccion manual:", e));
+      };
+      document.body.addEventListener('click', playOnInteraction, { once: true });
+    });
   };
   
   if (isInitiator) {
-    pc.onnegotiationneeded = async () => {
+    // Manually trigger negotiation with a small delay to stabilize connection states
+    setTimeout(async () => {
       try {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -771,7 +783,7 @@ function createPeerConnection(peerId, isInitiator) {
       } catch (err) {
         console.error("Error al crear oferta SDP:", err);
       }
-    };
+    }, 150);
   }
   
   return pc;
@@ -800,16 +812,32 @@ socket.on('webrtc_signal', async ({ from, signal }) => {
     await pc.setLocalDescription(answer);
     socket.emit('webrtc_signal', { to: from, signal: { type: 'answer', sdp: answer.sdp } });
     
+    // Process queued candidates
+    if (pc.iceQueue && pc.iceQueue.length > 0) {
+      for (const cand of pc.iceQueue) {
+        await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(e => console.error("Error al añadir candidato en cola:", e));
+      }
+      pc.iceQueue = [];
+    }
+    
   } else if (signal.type === 'answer') {
     if (pc) {
       await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+      
+      // Process queued candidates
+      if (pc.iceQueue && pc.iceQueue.length > 0) {
+        for (const cand of pc.iceQueue) {
+          await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(e => console.error("Error al añadir candidato en cola:", e));
+        }
+        pc.iceQueue = [];
+      }
     }
   } else if (signal.type === 'candidate') {
     if (pc) {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-      } catch (err) {
-        console.error("Error al añadir candidato ICE:", err);
+      if (pc.remoteDescription) {
+        await pc.addIceCandidate(new RTCIceCandidate(signal.candidate)).catch(e => console.error("Error al añadir candidato ICE:", e));
+      } else {
+        pc.iceQueue.push(signal.candidate);
       }
     }
   }
