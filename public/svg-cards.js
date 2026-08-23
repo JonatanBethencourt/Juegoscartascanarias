@@ -6,110 +6,109 @@
   const SUITS = {
     oros: {
       color: '#d4af37',
-      // Castilian Oro: Gold coin with relief circles and profile efigie in center
+      // Traditional gold coin: Gold gradient with red relief ring, inner star and classical face
       getSymbol: (scale = 1) => `
         <g transform="scale(${scale})">
-          <!-- Main Coin body -->
-          <circle cx="50" cy="50" r="40" fill="url(#goldGradient)" stroke="#d4af37" stroke-width="2" />
-          <circle cx="50" cy="50" r="34" fill="none" stroke="#8b6508" stroke-width="1.2" stroke-dasharray="2,2" />
-          <circle cx="50" cy="50" r="28" fill="none" stroke="#8b6508" stroke-width="1" />
+          <!-- Main Coin outer circle -->
+          <circle cx="50" cy="50" r="42" fill="url(#goldGradient)" stroke="#b8860b" stroke-width="1.8" />
           
-          <!-- Side profile silhouette (Roman emperor efigie) -->
-          <path d="M 45 64 C 45 64, 46 58, 44 56 C 41 55, 37 53, 35 50 C 33 47, 34 45, 36 44 C 38 43, 40 44, 40 44 C 38 42, 35 41, 34 38 C 33 35, 35 33, 37 32 L 35 27 C 35 27, 37 24, 42 24 C 47 24, 51 26, 54 30 C 57 34, 58 39, 57 43 C 56 49, 55 55, 57 61 C 58 64, 55 65, 52 65 Z" fill="#8b6508" />
+          <!-- Inner red decorative ring -->
+          <circle cx="50" cy="50" r="35" fill="none" stroke="#d50000" stroke-width="1.5" />
+          <circle cx="50" cy="50" r="30" fill="none" stroke="#ffd54f" stroke-width="1" stroke-dasharray="2,2" />
           
-          <!-- Laurel wreath -->
-          <path d="M 39 35 Q 44 26, 53 31 M 42 32 Q 47 27, 51 31" fill="none" stroke="#ffd54f" stroke-width="1.5" stroke-linecap="round" />
+          <!-- 8-pointed star in the center -->
+          <path d="M 50 18 L 53 38 L 74 38 L 57 51 L 64 72 L 50 59 L 36 72 L 43 51 L 26 38 L 47 38 Z" fill="#ffd54f" stroke="#b8860b" stroke-width="1" />
+          
+          <!-- Sun face / efigie in central medallion -->
+          <circle cx="50" cy="48" r="9" fill="url(#goldGradient)" stroke="#b8860b" stroke-width="0.8" />
+          <!-- Efigie profile silhouette -->
+          <path d="M 47 54 C 47 51, 44 49, 43 47 C 42 45, 43 44, 45 43 Q 43 40, 45 37 C 47 35, 52 35, 54 39 C 56 42, 55 46, 54 49 C 53 52, 53 54, 54 56 Z" fill="#8b6508" />
         </g>
       `
     },
     copas: {
       color: '#e23d3d',
-      // Castilian Copa: Goblin/cup with lid, handles, and gold/red/green bands
+      // Traditional Copas: Detailed goblet, red interior bowl, lid with green and red accents
       getSymbol: (scale = 1) => `
         <g transform="scale(${scale})">
-          <!-- Base -->
-          <path d="M 30 85 L 70 85 L 66 74 L 34 74 Z" fill="#d4af37" stroke="#8b6508" stroke-width="1.5" />
-          <path d="M 34 74 L 66 74 L 66 78 L 34 78 Z" fill="#4caf50" /> <!-- Green stripe -->
+          <!-- Goblet Base -->
+          <path d="M 28 85 L 72 85 L 65 74 L 35 74 Z" fill="#ffca28" stroke="#5d4037" stroke-width="1.5" />
+          <path d="M 33 74 C 33 74, 50 78, 67 74 L 67 77 C 67 77, 50 81, 33 77 Z" fill="#d32f2f" />
           
-          <!-- Stem -->
-          <path d="M 45 74 L 55 74 L 54 56 L 46 56 Z" fill="#c59b27" stroke="#8b6508" stroke-width="1.5" />
-          <circle cx="50" cy="65" r="7" fill="#d4af37" stroke="#8b6508" stroke-width="1" />
+          <!-- Goblet Stem and Ring -->
+          <path d="M 45 74 L 55 74 L 53 54 L 47 54 Z" fill="#ffca28" stroke="#5d4037" stroke-width="1.5" />
+          <ellipse cx="50" cy="64" rx="8" ry="6" fill="#ffca28" stroke="#5d4037" stroke-width="1" />
           
-          <!-- Bowl -->
-          <path d="M 23 28 C 23 58, 77 58, 77 28 Z" fill="#d4af37" stroke="#8b6508" stroke-width="1.5" />
-          <path d="M 23 35 C 23 48, 77 48, 77 35 Z" fill="none" stroke="#e23d3d" stroke-width="3" /> <!-- Red band -->
+          <!-- Goblet Bowl (Yellow base, bright red center) -->
+          <path d="M 20 25 C 20 56, 80 56, 80 25 Z" fill="#ffca28" stroke="#5d4037" stroke-width="1.5" />
+          <path d="M 25 25 C 25 48, 75 48, 75 25 Z" fill="#d32f2f" stroke="#b71c1c" stroke-width="1" />
+          <circle cx="50" cy="38" r="4" fill="#ffca28" />
           
-          <!-- Handles -->
-          <path d="M 23 32 Q 13 40, 23 48" fill="none" stroke="#d4af37" stroke-width="2.5" />
-          <path d="M 77 32 Q 87 40, 77 48" fill="none" stroke="#d4af37" stroke-width="2.5" />
+          <!-- Decorative Handles -->
+          <path d="M 20 30 Q 8 40, 20 48" fill="none" stroke="#ffca28" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M 80 30 Q 92 40, 80 48" fill="none" stroke="#ffca28" stroke-width="2.5" stroke-linecap="round" />
           
-          <!-- Lid (Tapa) -->
-          <path d="M 20 28 C 20 28, 20 18, 50 18 C 80 18, 80 28, 80 28 Z" fill="#d4af37" stroke="#8b6508" stroke-width="1.5" />
-          <path d="M 20 25 L 80 25 L 80 28 L 20 28 Z" fill="#4caf50" />
-          <!-- Lid Knob -->
-          <circle cx="50" cy="14" r="5" fill="#d4af37" stroke="#8b6508" />
+          <!-- Goblet Lid (Tapa) with green bands and red knob -->
+          <path d="M 18 25 C 18 25, 20 12, 50 12 C 80 12, 82 25, 82 25 Z" fill="#ffca28" stroke="#5d4037" stroke-width="1.5" />
+          <path d="M 30 18 Q 50 24 70 18" fill="none" stroke="#2e7d32" stroke-width="2" />
+          <circle cx="50" cy="7" r="4.5" fill="#d32f2f" stroke="#5d4037" />
         </g>
       `
     },
     espadas: {
-      color: '#4682b4',
-      // Castilian Espada: Straight sword with crossguard, wire handle, and steel blade
+      color: '#1976d2',
+      // Traditional Espada: Blue-steel rapier, gold curved hilt, red wrapped handle, pommel
       getSymbol: (scale = 1) => `
         <g transform="scale(${scale})">
-          <!-- Pommel (Gold) -->
-          <circle cx="50" cy="94" r="5.5" fill="#d4af37" stroke="#8b6508" />
+          <!-- Pommel (Gold with red gem center) -->
+          <circle cx="50" cy="95" r="5.5" fill="#ffca28" stroke="#5d4037" stroke-width="1" />
+          <circle cx="50" cy="95" r="2.2" fill="#d32f2f" />
           
-          <!-- Handle (Brown wire wrap) -->
-          <path d="M 46 80 L 54 80 L 52 92 L 48 92 Z" fill="#8b4513" stroke="#5c2d16" stroke-width="1" />
-          <line x1="47" y1="83" x2="53" y2="83" stroke="#ffd54f" stroke-width="0.8" />
-          <line x1="48" y1="86" x2="52" y2="86" stroke="#ffd54f" stroke-width="0.8" />
-          <line x1="48" y1="89" x2="52" y2="89" stroke="#ffd54f" stroke-width="0.8" />
+          <!-- Handle (Red-wire wrapped) -->
+          <path d="M 45 81 L 55 81 L 53 93 L 47 93 Z" fill="#d32f2f" stroke="#5d4037" stroke-width="1" />
+          <line x1="46" y1="84" x2="54" y2="84" stroke="#ffca28" stroke-width="0.8" />
+          <line x1="47" y1="87" x2="53" y2="87" stroke="#ffca28" stroke-width="0.8" />
+          <line x1="48" y1="90" x2="52" y2="90" stroke="#ffca28" stroke-width="0.8" />
           
           <!-- Guard (Golden curved crossbar) -->
-          <path d="M 20 74 C 20 74, 50 78, 80 74 C 80 74, 50 82, 20 74 Z" fill="#d4af37" stroke="#8b6508" stroke-width="1.2" />
-          <circle cx="20" cy="74" r="2.5" fill="#8b6508" />
-          <circle cx="80" cy="74" r="2.5" fill="#8b6508" />
+          <path d="M 22 75 C 22 75, 50 78, 78 75 C 84 75, 84 81, 78 81 C 50 83, 22 81, 22 81 C 16 81, 16 75, 22 75 Z" fill="#ffca28" stroke="#5d4037" stroke-width="1.2" />
           
-          <!-- Blade (Tapered steel) -->
-          <path d="M 46 74 L 47 16 L 50 4 L 53 16 L 54 74 Z" fill="#c6d7e7" stroke="#4682b4" stroke-width="1.5" />
-          <!-- Blade Ridge / fuller -->
-          <line x1="50" y1="72" x2="50" y2="12" stroke="#4682b4" stroke-width="1.2" />
+          <!-- Blade (Polished steel blue with reflection) -->
+          <path d="M 46 75 L 47 16 L 50 3 L 53 16 L 54 75 Z" fill="#e3f2fd" stroke="#1976d2" stroke-width="1.5" />
+          <path d="M 50 75 L 50 6 L 53 16 L 54 75 Z" fill="#bbdefb" opacity="0.75" /> <!-- Reflection -->
+          <line x1="50" y1="75" x2="50" y2="10" stroke="#1976d2" stroke-width="1.2" />
         </g>
       `
     },
     bastos: {
       color: '#4caf50',
-      // Castilian Basto: Brown wooden club with texture, light knots, and leaves
+      // Traditional Basto: Brown wooden club, wood grain lines, cut knots, green leaves
       getSymbol: (scale = 1) => `
         <g transform="scale(${scale})">
-          <!-- Main Wooden Trunk -->
-          <path d="M 45 88 C 45 88, 37 40, 42 22 C 44 14, 56 14, 58 22 C 63 40, 55 88, 55 88 Z" fill="#8b4513" stroke="#4e342e" stroke-width="2.2" />
+          <!-- Main Wooden Cudgel Trunk -->
+          <path d="M 45 88 C 45 88, 36 38, 41 20 C 43 12, 57 12, 59 20 C 64 38, 55 88, 55 88 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="2" />
+          <path d="M 45 88 C 45 88, 39 38, 44 20 C 45 15, 50 15, 52 20 C 55 38, 55 88, 55 88 Z" fill="#a1887f" opacity="0.65" /> <!-- Inner wood light shading -->
           
-          <!-- Wood grain rings / knots -->
-          <ellipse cx="44" cy="45" rx="5.5" ry="4" fill="#d7ccc8" stroke="#5d4037" stroke-width="1" />
-          <ellipse cx="56" cy="62" rx="5.5" ry="4" fill="#d7ccc8" stroke="#5d4037" stroke-width="1" />
-          <ellipse cx="45" cy="74" rx="5.5" ry="4" fill="#d7ccc8" stroke="#5d4037" stroke-width="1" />
-          <ellipse cx="55" cy="32" rx="4.5" ry="3" fill="#d7ccc8" stroke="#5d4037" stroke-width="1" />
-          
-          <!-- Bark lines -->
-          <path d="M 48 85 C 48 85, 45 60, 49 52" fill="none" stroke="#4e342e" stroke-width="1.5" />
-          <path d="M 52 85 C 52 85, 54 70, 52 66" fill="none" stroke="#4e342e" stroke-width="1.5" />
+          <!-- Rings representing cut branch nodes -->
+          <ellipse cx="43" cy="44" rx="5" ry="3.5" fill="#d7ccc8" stroke="#5d4037" stroke-width="1.2" />
+          <ellipse cx="57" cy="62" rx="5" ry="3.5" fill="#d7ccc8" stroke="#5d4037" stroke-width="1.2" />
+          <ellipse cx="44" cy="74" rx="5" ry="3.5" fill="#d7ccc8" stroke="#5d4037" stroke-width="1.2" />
+          <ellipse cx="55" cy="30" rx="4.5" ry="3" fill="#d7ccc8" stroke="#5d4037" stroke-width="1.2" />
           
           <!-- Sprouting green leaves -->
-          <path d="M 37 32 Q 23 35, 35 24 Z" fill="#4caf50" stroke="#2e7d32" stroke-width="1" />
-          <circle cx="31" cy="29" r="1.5" fill="#81c784" />
-          
-          <path d="M 63 50 Q 77 53, 65 42 Z" fill="#4caf50" stroke="#2e7d32" stroke-width="1" />
-          <circle cx="70" cy="47" r="1.5" fill="#81c784" />
-          
-          <path d="M 38 62 Q 24 66, 37 54 Z" fill="#4caf50" stroke="#2e7d32" stroke-width="1" />
-          <circle cx="30" cy="60" r="1.5" fill="#81c784" />
+          <path d="M 37 32 Q 22 34, 34 23 Z" fill="#4caf50" stroke="#1b5e20" stroke-width="1" />
+          <path d="M 63 50 Q 78 52, 66 41 Z" fill="#4caf50" stroke="#1b5e20" stroke-width="1" />
+          <path d="M 38 64 Q 23 66, 35 54 Z" fill="#4caf50" stroke="#1b5e20" stroke-width="1" />
+          <!-- Leaf highlights -->
+          <path d="M 37 32 Q 28 33, 34 27 Z" fill="#81c784" opacity="0.7" />
+          <path d="M 63 50 Q 72 51, 66 45 Z" fill="#81c784" opacity="0.7" />
+          <path d="M 38 64 Q 29 65, 35 59 Z" fill="#81c784" opacity="0.7" />
         </g>
       `
     }
   };
 
-  // Symbols placement positions (normalized for scale=0.8, center=100,150)
+  // Upright, column-based layouts (standard for Oros and Copas, and As of all suits)
   const LAYOUTS = {
     1: [{ x: 60, y: 110, s: 0.8 }],
     2: [
@@ -152,6 +151,72 @@
       { x: 95, y: 175, s: 0.65, rotate: 180 }
     ]
   };
+
+  // Traditional crossed & angled layouts for Espadas and Bastos numbers (2 to 7)
+  function getLayout(suit, number) {
+    const s = suit.toLowerCase();
+    const num = parseInt(number);
+    
+    // For Oros, Copas, or Aces: use standard upright grid layouts
+    if (num === 1 || s === 'oros' || s === 'copas') {
+      return LAYOUTS[num] || [];
+    }
+
+    // For Espadas and Bastos (2 to 7): use traditional crossed/angled layouts
+    if (num === 2) {
+      return [
+        { cx: 100, cy: 150, r: 30, s: 0.8 },
+        { cx: 100, cy: 150, r: -30, s: 0.8 }
+      ];
+    }
+    if (num === 3) {
+      return [
+        { cx: 100, cy: 150, r: 30, s: 0.75 },
+        { cx: 100, cy: 150, r: -30, s: 0.75 },
+        { cx: 100, cy: 150, r: 0, s: 0.75 }
+      ];
+    }
+    if (num === 4) {
+      return [
+        { x: 25, y: 45, s: 0.7, r: 25 },
+        { x: 95, y: 45, s: 0.7, r: -25 },
+        { x: 25, y: 175, s: 0.7, r: -25 },
+        { x: 95, y: 175, s: 0.7, r: 25 }
+      ];
+    }
+    if (num === 5) {
+      return [
+        { x: 25, y: 45, s: 0.65, r: 25 },
+        { x: 95, y: 45, s: 0.65, r: -25 },
+        { cx: 100, cy: 150, r: 0, s: 0.65 },
+        { x: 25, y: 175, s: 0.65, r: -25 },
+        { x: 95, y: 175, s: 0.65, r: 25 }
+      ];
+    }
+    if (num === 6) {
+      return [
+        { x: 25, y: 45, s: 0.65, r: 15 },
+        { x: 95, y: 45, s: 0.65, r: -15 },
+        { x: 25, y: 110, s: 0.65, r: 15 },
+        { x: 95, y: 110, s: 0.65, r: -15 },
+        { x: 25, y: 175, s: 0.65, r: -15 },
+        { x: 95, y: 175, s: 0.65, r: 15 }
+      ];
+    }
+    if (num === 7) {
+      return [
+        { x: 25, y: 45, s: 0.65, r: 15 },
+        { x: 95, y: 45, s: 0.65, r: -15 },
+        { x: 25, y: 110, s: 0.65, r: 15 },
+        { x: 95, y: 110, s: 0.65, r: -15 },
+        { cx: 100, cy: 112, r: 0, s: 0.65 },
+        { x: 25, y: 175, s: 0.65, r: -15 },
+        { x: 95, y: 175, s: 0.65, r: 15 }
+      ];
+    }
+    
+    return LAYOUTS[num] || [];
+  }
 
   // Human figure silhouettes for Court cards (Sota, Caballo, Rey)
   const COURT_GRAPHICS = {
@@ -418,16 +483,26 @@
           `;
         }
       } else {
-        // Number card layouts (1 to 7)
-        const layouts = LAYOUTS[number];
+        // Number card layouts (1 to 7) - uses crossed layout if Espadas/Bastos
+        const layouts = getLayout(suit, number);
         if (layouts) {
           layouts.forEach(layout => {
-            const rotStr = layout.rotate ? `rotate(${layout.rotate} 50 50)` : '';
-            content += `
-              <g transform="translate(${layout.x}, ${layout.y}) ${rotStr}">
-                ${suitInfo.getSymbol(layout.s)}
-              </g>
-            `;
+            if (layout.cx !== undefined) {
+              const rotStr = layout.r ? `rotate(${layout.r})` : '';
+              content += `
+                <g transform="translate(${layout.cx}, ${layout.cy}) ${rotStr} scale(${layout.s}) translate(-50, -50)">
+                  ${suitInfo.getSymbol(1)}
+                </g>
+              `;
+            } else {
+              // Standard layout using x, y
+              const rotStr = layout.r ? `rotate(${layout.r} 50 50)` : (layout.rotate ? `rotate(${layout.rotate} 50 50)` : '');
+              content += `
+                <g transform="translate(${layout.x}, ${layout.y}) ${rotStr}">
+                  ${suitInfo.getSymbol(layout.s)}
+                </g>
+              `;
+            }
           });
         }
       }
