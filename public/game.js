@@ -780,6 +780,13 @@ async function connectVoiceChat() {
     logMsg("🎙️/📷 Cámara y micrófono activados. Te has unido al canal de video.", "system");
     setupLocalVideo();
     
+    // Show toggle buttons controls
+    const controls = document.getElementById('video-controls');
+    if (controls) controls.classList.remove('hidden');
+    isAudioEnabled = true;
+    isVideoEnabled = true;
+    updateMediaButtonsUI();
+    
     // Update button visual status
     const buttons = [btnLobbyVoice, btnGameVoice];
     buttons.forEach(btn => {
@@ -819,6 +826,13 @@ async function connectVoiceChat() {
       voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       logMsg("🎙️ Micrófono activado. Te has unido al canal de voz.", "system");
       setupLocalVideo(); // Displays a placeholder/avatar in the video box instead of raw feed
+      
+      // Show toggle buttons controls
+      const controls = document.getElementById('video-controls');
+      if (controls) controls.classList.remove('hidden');
+      isAudioEnabled = true;
+      isVideoEnabled = false; // No video available
+      updateMediaButtonsUI();
       
       const buttons = [btnLobbyVoice, btnGameVoice];
       buttons.forEach(btn => {
@@ -1027,6 +1041,49 @@ socket.on('disconnect_peer_voice', ({ socketId }) => {
   const wrapper = document.getElementById(`video-wrapper-${socketId}`);
   if (wrapper) wrapper.remove();
 });
+
+// Toggle buttons for camera/mic
+let isAudioEnabled = true;
+let isVideoEnabled = true;
+
+function updateMediaButtonsUI() {
+  const btnMic = document.getElementById('btn-toggle-mic');
+  const btnCam = document.getElementById('btn-toggle-cam');
+  
+  if (btnMic) {
+    btnMic.innerText = isAudioEnabled ? '🎤 On' : '🔇 Off';
+    btnMic.style.backgroundColor = isAudioEnabled ? '#4caf50' : '#f44336';
+  }
+  if (btnCam) {
+    btnCam.innerText = isVideoEnabled ? '📷 On' : '📷 Off';
+    btnCam.style.backgroundColor = isVideoEnabled ? '#4caf50' : '#f44336';
+  }
+}
+
+function toggleMic() {
+  if (!voiceStream) return;
+  const audioTracks = voiceStream.getAudioTracks();
+  if (audioTracks.length === 0) return;
+  
+  isAudioEnabled = !isAudioEnabled;
+  audioTracks.forEach(track => track.enabled = isAudioEnabled);
+  updateMediaButtonsUI();
+  logMsg(isAudioEnabled ? "🎙️ Micrófono activado." : "🔇 Micrófono silenciado.", "system");
+}
+
+function toggleCam() {
+  if (!voiceStream) return;
+  const videoTracks = voiceStream.getVideoTracks();
+  if (videoTracks.length === 0) return;
+  
+  isVideoEnabled = !isVideoEnabled;
+  videoTracks.forEach(track => track.enabled = isVideoEnabled);
+  updateMediaButtonsUI();
+  logMsg(isVideoEnabled ? "📷 Cámara activada." : "📷 Cámara desactivada.", "system");
+}
+
+document.getElementById('btn-toggle-mic').addEventListener('click', toggleMic);
+document.getElementById('btn-toggle-cam').addEventListener('click', toggleCam);
 
 // Bind click events for Partida control panel
 document.getElementById('btn-count-points').addEventListener('click', () => {

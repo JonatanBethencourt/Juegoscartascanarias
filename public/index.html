@@ -103,7 +103,12 @@
       <!-- Main Game Board -->
       <main class="board-container">
         <!-- Floating Video Chat Container -->
-        <div id="video-container" class="video-container"></div>
+        <div id="video-container" class="video-container">
+          <div id="video-controls" class="video-controls hidden" style="display: flex; gap: 5px; margin-bottom: 5px; pointer-events: auto; width: 130px;">
+            <button id="btn-toggle-mic" style="font-size: 0.7rem; padding: 4px; flex: 1; border-radius: 4px; font-weight: bold; cursor: pointer; height: 28px; background-color: #4caf50; color: white; border: 1px solid rgba(255,255,255,0.2);">🎤 On</button>
+            <button id="btn-toggle-cam" style="font-size: 0.7rem; padding: 4px; flex: 1; border-radius: 4px; font-weight: bold; cursor: pointer; height: 28px; background-color: #4caf50; color: white; border: 1px solid rgba(255,255,255,0.2);">📷 On</button>
+          </div>
+        </div>
         
         <!-- The Table -->
         <div class="poker-table">
