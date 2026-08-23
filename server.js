@@ -646,6 +646,15 @@ io.on('connection', (socket) => {
     });
   });
 
+  // WEBRTC VOICE SIGNAL RELAY
+  socket.on('webrtc_signal', ({ to, signal }) => {
+    io.to(to).emit('webrtc_signal', { from: socket.id, signal });
+  });
+
+  socket.on('voice_ready', ({ roomId }) => {
+    socket.to(roomId).emit('voice_player_ready', { socketId: socket.id });
+  });
+
   // CHAT MESSAGE
   socket.on('chat_message', ({ roomId, message }) => {
     const player = rooms[roomId]?.players.find(p => p && p.socketId === socket.id);
@@ -657,6 +666,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const data = disconnectPlayer(socket.id);
     if (data) {
+      io.to(data.roomId).emit('disconnect_peer_voice', { socketId: socket.id });
       io.to(data.roomId).emit('log_message', { text: `${data.name} se ha desconectado. El juego volvera al lobby.`, type: 'system' });
       const room = rooms[data.roomId];
       if (room) {

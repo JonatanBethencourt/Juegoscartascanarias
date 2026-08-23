@@ -697,6 +697,133 @@ function checkTuteCantoOptions(gameState) {
   }
 }
 
+// WEBRTC PEER-TO-PEER VOICE CHAT LOGIC
+let voiceStream = null;
+const peerConnections = {};
+const rtcConfig = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
+
+const btnLobbyVoice = document.getElementById('btn-lobby-voice');
+const btnGameVoice = document.getElementById('btn-game-voice');
+
+async function connectVoiceChat() {
+  if (voiceStream) return;
+  try {
+    voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    logMsg("🎙️ Chat de Voz activado. Puedes hablar con el micrófono abierto.", "system");
+    
+    // Update button visual status
+    const buttons = [btnLobbyVoice, btnGameVoice];
+    buttons.forEach(btn => {
+      if (btn) {
+        btn.innerText = '🎙️ Voz Conectada';
+        btn.style.background = '#4caf50'; // Green background
+        btn.style.color = 'white';
+        btn.disabled = true; // Disable so they don't click again
+      }
+    });
+    
+    socket.emit('voice_ready', { roomId });
+  } catch (err) {
+    console.error("Error al activar micrófono:", err);
+    logMsg("⚠️ Error de permisos: No se pudo acceder al micrófono.", "system");
+  }
+}
+
+if (btnLobbyVoice) btnLobbyVoice.addEventListener('click', connectVoiceChat);
+if (btnGameVoice) btnGameVoice.addEventListener('click', connectVoiceChat);
+
+// Create peer connection with another client
+function createPeerConnection(peerId, isInitiator) {
+  const pc = new RTCPeerConnection(rtcConfig);
+  
+  if (voiceStream) {
+    voiceStream.getTracks().forEach(track => pc.addTrack(track, voiceStream));
+  }
+  
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      socket.emit('webrtc_signal', { to: peerId, signal: { type: 'candidate', candidate: event.candidate } });
+    }
+  };
+  
+  pc.ontrack = (event) => {
+    let audioEl = document.getElementById(`audio-peer-${peerId}`);
+    if (!audioEl) {
+      audioEl = document.createElement('audio');
+      audioEl.id = `audio-peer-${peerId}`;
+      audioEl.autoplay = true;
+      document.body.appendChild(audioEl);
+    }
+    audioEl.srcObject = event.streams[0];
+  };
+  
+  if (isInitiator) {
+    pc.onnegotiationneeded = async () => {
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit('webrtc_signal', { to: peerId, signal: { type: 'offer', sdp: offer.sdp } });
+      } catch (err) {
+        console.error("Error al crear oferta SDP:", err);
+      }
+    };
+  }
+  
+  return pc;
+}
+
+// Signaling socket events
+socket.on('voice_player_ready', async ({ socketId }) => {
+  if (socketId === socket.id) return;
+  // If we already have a stream, initiate the connection
+  if (voiceStream) {
+    const pc = createPeerConnection(socketId, true);
+    peerConnections[socketId] = pc;
+  }
+});
+
+socket.on('webrtc_signal', async ({ from, signal }) => {
+  let pc = peerConnections[from];
+  
+  if (signal.type === 'offer') {
+    if (!pc) {
+      pc = createPeerConnection(from, false);
+      peerConnections[from] = pc;
+    }
+    await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: signal.sdp }));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('webrtc_signal', { to: from, signal: { type: 'answer', sdp: answer.sdp } });
+    
+  } else if (signal.type === 'answer') {
+    if (pc) {
+      await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: signal.sdp }));
+    }
+  } else if (signal.type === 'candidate') {
+    if (pc) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+      } catch (err) {
+        console.error("Error al añadir candidato ICE:", err);
+      }
+    }
+  }
+});
+
+socket.on('disconnect_peer_voice', ({ socketId }) => {
+  if (peerConnections[socketId]) {
+    peerConnections[socketId].close();
+    delete peerConnections[socketId];
+  }
+  const audioEl = document.getElementById(`audio-peer-${socketId}`);
+  if (audioEl) audioEl.remove();
+});
+
 // JOIN INITIAL ROOM ON LOAD
 window.onload = () => {
   initRoom();
