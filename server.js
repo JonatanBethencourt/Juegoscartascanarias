@@ -956,25 +956,35 @@ function evaluateTrick(room) {
 
   // Draw cards if 2-player Tute
   if (room.gameType === 'tute' && room.maxPlayers === 2) {
-    if (gs.deck && gs.deck.length > 0) {
+    const totalRemaining = (gs.deck ? gs.deck.length : 0) + (gs.viraCard ? 1 : 0);
+    if (totalRemaining > 0) {
       const winnerPlayerObj = room.players.find(p => p && p.seat === winnerSeat);
       const loserPlayerObj = room.players.find(p => p && p.seat !== winnerSeat);
       
       if (winnerPlayerObj && loserPlayerObj) {
-        const cardW = gs.deck.pop();
-        gs.hands[winnerPlayerObj.socketId].push(cardW);
-        
-        if (gs.deck.length > 0) {
-          const cardL = gs.deck.pop();
-          gs.hands[loserPlayerObj.socketId].push(cardL);
+        // 1. Winner draws first card
+        let cardW = null;
+        if (gs.deck && gs.deck.length > 0) {
+          cardW = gs.deck.pop();
         } else if (gs.viraCard) {
-          // Winner drew the last card, loser gets the face-up Vira!
-          gs.hands[loserPlayerObj.socketId].push(gs.viraCard);
-          gs.viraCard = null; // Vira is drawn
+          cardW = gs.viraCard;
+          gs.viraCard = null;
         }
+        
+        // 2. Loser draws second card
+        let cardL = null;
+        if (gs.deck && gs.deck.length > 0) {
+          cardL = gs.deck.pop();
+        } else if (gs.viraCard) {
+          cardL = gs.viraCard;
+          gs.viraCard = null;
+        }
+        
+        if (cardW) gs.hands[winnerPlayerObj.socketId].push(cardW);
+        if (cardL) gs.hands[loserPlayerObj.socketId].push(cardL);
       }
-      gs.deckCount = gs.deck.length + (gs.viraCard ? 1 : 0);
     }
+    gs.deckCount = (gs.deck ? gs.deck.length : 0) + (gs.viraCard ? 1 : 0);
   }
 
   // Clear table cards
