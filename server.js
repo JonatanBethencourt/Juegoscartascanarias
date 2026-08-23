@@ -598,12 +598,33 @@ io.on('connection', (socket) => {
   // SWAP VIRA (Tute 2 players)
   socket.on('swap_vira', ({ roomId }) => {
     const room = rooms[roomId];
-    if (!room || room.gameType !== 'tute' || room.maxPlayers !== 2) return;
+    if (!room) {
+      socket.emit('log_message', { text: `⚠️ Error al cambiar la vira: sala no encontrada.`, type: 'system' });
+      return;
+    }
     const gs = room.gameState;
-    if (gs.status !== 'playing' || !gs.viraCard || gs.deckCount === 0) return;
+    if (room.gameType !== 'tute' || room.maxPlayers !== 2) {
+      socket.emit('log_message', { text: `⚠️ El intercambio de vira solo está permitido en Tute de 2 jugadores.`, type: 'system' });
+      return;
+    }
+    if (gs.status !== 'playing') {
+      socket.emit('log_message', { text: `⚠️ No puedes cambiar la vira ahora (estado: ${gs.status}).`, type: 'system' });
+      return;
+    }
+    if (!gs.viraCard) {
+      socket.emit('log_message', { text: `⚠️ No hay vira en la mesa para cambiar.`, type: 'system' });
+      return;
+    }
+    if (gs.deckCount === 0) {
+      socket.emit('log_message', { text: `⚠️ El mazo está vacío, no se puede cambiar la vira.`, type: 'system' });
+      return;
+    }
 
     const player = room.players.find(p => p && p.socketId === socket.id);
-    if (!player) return;
+    if (!player) {
+      socket.emit('log_message', { text: `⚠️ Error: jugador no identificado en esta sala.`, type: 'system' });
+      return;
+    }
 
     // Check if player has won at least one trick
     const wonTricks = (gs.tricks || []).filter(t => t.winnerSeat === player.seat).length;
@@ -613,6 +634,10 @@ io.on('connection', (socket) => {
     }
 
     const hand = gs.hands[socket.id];
+    if (!hand) {
+      socket.emit('log_message', { text: `⚠️ Error: no se encontró tu mano en el servidor.`, type: 'system' });
+      return;
+    }
     const trumpSuit = gs.trumpSuit;
     const viraNum = gs.viraCard.number;
 
@@ -633,7 +658,7 @@ io.on('connection', (socket) => {
     }
 
     if (swapCardIndex === -1 || !cardToExchange) {
-      socket.emit('log_message', { text: `No tienes la carta requerida del palo de triunfo para cambiar la vira.`, type: 'system' });
+      socket.emit('log_message', { text: `No tienes la carta requerida (${[1, 3, 10, 11, 12].includes(viraNum) ? '7' : '2 o 3'} de ${trumpSuit}) para cambiar la vira.`, type: 'system' });
       return;
     }
 
