@@ -104,14 +104,45 @@ function getCardPointsTute(card) {
   }
 }
 
+// Custom 2-player Tute rank and points
+function getCardRankTute2(card, trumpSuit, ledSuit) {
+  // Raw ranks for 2-player Tute: As(1)>2>12>11>10>7>6>5>4>3
+  const rawRanks = { 1: 10, 2: 9, 12: 8, 11: 7, 10: 6, 7: 5, 6: 4, 5: 3, 4: 2, 3: 1 };
+  const rank = rawRanks[card.number] || 0;
+
+  if (card.suit === trumpSuit) {
+    return rank + 100;
+  }
+  if (card.suit === ledSuit) {
+    return rank;
+  }
+  return -1; // Discard
+}
+
+function getCardPointsTute2(card) {
+  switch (card.number) {
+    case 1: return 11;
+    case 2: return 10; // 2 is worth 10 points
+    case 12: return 4;
+    case 11: return 3;
+    case 10: return 2;
+    default: return 0;
+  }
+}
+
 // Validate play for Tute (obligaciones de asistir, montar, fallar, pisar)
-function validateTutePlay(playerHand, playedCard, playedCardsOnTable, trumpSuit) {
+function validateTutePlay(playerHand, playedCard, playedCardsOnTable, trumpSuit, maxPlayers, deckCount) {
   // Card must exist in player hand
   const hasCard = playerHand.some(c => c.suit === playedCard.suit && c.number === playedCard.number);
   if (!hasCard) return false;
 
   // First card played in trick is always valid
   if (playedCardsOnTable.length === 0) return true;
+
+  // In 2-player Tute, play restrictions only apply when the draw pile is empty!
+  if (maxPlayers === 2 && deckCount > 0) {
+    return true; // Free play during Phase 1
+  }
 
   const firstCard = playedCardsOnTable[0].card;
   const ledSuit = firstCard.suit;
@@ -120,7 +151,9 @@ function validateTutePlay(playerHand, playedCard, playedCardsOnTable, trumpSuit)
   let highestTableCard = null;
   let highestTableRank = -999;
   for (const p of playedCardsOnTable) {
-    const r = getCardRankTute(p.card, trumpSuit, ledSuit);
+    const r = maxPlayers === 2
+      ? getCardRankTute2(p.card, trumpSuit, ledSuit)
+      : getCardRankTute(p.card, trumpSuit, ledSuit);
     if (r > highestTableRank) {
       highestTableRank = r;
       highestTableCard = p.card;
@@ -136,13 +169,21 @@ function validateTutePlay(playerHand, playedCard, playedCardsOnTable, trumpSuit)
 
     // Can player beat highest card of led suit on table?
     if (!isHighestTrump) {
-      // Highest card is led suit, check if player has a higher led suit card
-      const highestLedSuitOnTableRank = getCardRankTute(highestTableCard, trumpSuit, ledSuit);
-      const betterLedSuitCards = playerHand.filter(c => c.suit === ledSuit && getCardRankTute(c, trumpSuit, ledSuit) > highestLedSuitOnTableRank);
+      // Check if player has a higher led suit card
+      const highestLedSuitOnTableRank = maxPlayers === 2
+        ? getCardRankTute2(highestTableCard, trumpSuit, ledSuit)
+        : getCardRankTute(highestTableCard, trumpSuit, ledSuit);
+      const betterLedSuitCards = playerHand.filter(c => c.suit === ledSuit && (
+        maxPlayers === 2
+          ? getCardRankTute2(c, trumpSuit, ledSuit) > highestLedSuitOnTableRank
+          : getCardRankTute(c, trumpSuit, ledSuit) > highestLedSuitOnTableRank
+      ));
       
       if (betterLedSuitCards.length > 0) {
         // Player MUST play a higher led suit card (montar)
-        const playedCardRank = getCardRankTute(playedCard, trumpSuit, ledSuit);
+        const playedCardRank = maxPlayers === 2
+          ? getCardRankTute2(playedCard, trumpSuit, ledSuit)
+          : getCardRankTute(playedCard, trumpSuit, ledSuit);
         if (playedCardRank <= highestLedSuitOnTableRank) {
           return false;
         }
@@ -157,10 +198,16 @@ function validateTutePlay(playerHand, playedCard, playedCardsOnTable, trumpSuit)
 
       // If highest card is a trump, player must over-trump if possible (pisar)
       if (isHighestTrump) {
-        const betterTrumps = playerHand.filter(c => c.suit === trumpSuit && getCardRankTute(c, trumpSuit, ledSuit) > highestTableRank);
+        const betterTrumps = playerHand.filter(c => c.suit === trumpSuit && (
+          maxPlayers === 2
+            ? getCardRankTute2(c, trumpSuit, ledSuit) > highestTableRank
+            : getCardRankTute(c, trumpSuit, ledSuit) > highestTableRank
+        ));
         if (betterTrumps.length > 0) {
           // Must play a higher trump
-          const playedCardRank = getCardRankTute(playedCard, trumpSuit, ledSuit);
+          const playedCardRank = maxPlayers === 2
+            ? getCardRankTute2(playedCard, trumpSuit, ledSuit)
+            : getCardRankTute(playedCard, trumpSuit, ledSuit);
           if (playedCardRank <= highestTableRank) {
             return false;
           }
@@ -187,6 +234,7 @@ function startNewRound(room) {
   // Vira (Trump Card)
   // Drawn first, suit determines trump.
   gs.viraCard = deck.pop();
+  gs.trumpSuit = gs.viraCard.suit;
 
   if (room.gameType === 'envido') {
     gs.envidoRoundScore = { teamA: 0, teamB: 0 };
@@ -197,16 +245,18 @@ function startNewRound(room) {
   } else if (room.gameType === 'tute') {
     gs.tuteRoundScores = {};
     gs.tuteCantos = {};
+    const cardsToDeal = room.maxPlayers === 2 ? 3 : 13;
     room.players.forEach(p => {
       gs.tuteRoundScores[p.seat] = 0;
       gs.tuteCantos[p.seat] = [];
       
-      // Deal 13 cards each
       gs.hands[p.socketId] = [];
-      for (let i = 0; i < 13; i++) {
+      for (let i = 0; i < cardsToDeal; i++) {
         gs.hands[p.socketId].push(deck.pop());
       }
     });
+    // Store deck for 2-player Tute drawing
+    gs.deck = deck;
   }
 
   // Set turn to player next to dealer
@@ -447,7 +497,7 @@ io.on('connection', (socket) => {
 
     // Validate play for Tute
     if (room.gameType === 'tute') {
-      const isValid = validateTutePlay(playerHand, card, gs.playedCards, gs.viraCard.suit);
+      const isValid = validateTutePlay(playerHand, card, gs.playedCards, gs.trumpSuit, room.maxPlayers, gs.deckCount);
       if (!isValid) {
         socket.emit('log_message', { text: `¡Jugada invalida! En el Tute debes asistir, montar o fallar segun corresponda.`, type: 'system' });
         return;
@@ -625,7 +675,7 @@ io.on('connection', (socket) => {
 // Evaluate who wins the trick
 function evaluateTrick(room) {
   const gs = room.gameState;
-  const trumpSuit = gs.viraCard.suit;
+  const trumpSuit = gs.trumpSuit;
   const firstCardPlayed = gs.playedCards[0].card;
   const ledSuit = firstCardPlayed.suit;
 
@@ -636,6 +686,8 @@ function evaluateTrick(room) {
     let rank;
     if (room.gameType === 'envido') {
       rank = getCardRankEnvido(p.card, trumpSuit, ledSuit);
+    } else if (room.maxPlayers === 2) {
+      rank = getCardRankTute2(p.card, trumpSuit, ledSuit);
     } else {
       rank = getCardRankTute(p.card, trumpSuit, ledSuit);
     }
@@ -664,9 +716,36 @@ function evaluateTrick(room) {
   if (room.gameType === 'tute') {
     let trickPoints = 0;
     gs.playedCards.forEach(p => {
-      trickPoints += getCardPointsTute(p.card);
+      if (room.maxPlayers === 2) {
+        trickPoints += getCardPointsTute2(p.card);
+      } else {
+        trickPoints += getCardPointsTute(p.card);
+      }
     });
     gs.tuteRoundScores[winnerSeat] += trickPoints;
+  }
+
+  // Draw cards if 2-player Tute
+  if (room.gameType === 'tute' && room.maxPlayers === 2) {
+    if (gs.deck && gs.deck.length > 0) {
+      const winnerPlayerObj = room.players.find(p => p && p.seat === winnerSeat);
+      const loserPlayerObj = room.players.find(p => p && p.seat !== winnerSeat);
+      
+      if (winnerPlayerObj && loserPlayerObj) {
+        const cardW = gs.deck.pop();
+        gs.hands[winnerPlayerObj.socketId].push(cardW);
+        
+        if (gs.deck.length > 0) {
+          const cardL = gs.deck.pop();
+          gs.hands[loserPlayerObj.socketId].push(cardL);
+        } else if (gs.viraCard) {
+          // Winner drew the last card, loser gets the face-up Vira!
+          gs.hands[loserPlayerObj.socketId].push(gs.viraCard);
+          gs.viraCard = null; // Vira is drawn
+        }
+      }
+      gs.deckCount = gs.deck.length + (gs.viraCard ? 1 : 0);
+    }
   }
 
   // Clear table cards
@@ -676,8 +755,8 @@ function evaluateTrick(room) {
   gs.currentTurn = winnerSeat;
   gs.leadPlayerSeat = winnerSeat;
 
-  // Check if round is over (3 tricks in Envido, 13 tricks in Tute)
-  const maxTricks = room.gameType === 'envido' ? 3 : 13;
+  // Check if round is over (3 tricks in Envido, 20 in 2-player Tute, 13 in 3-player Tute)
+  const maxTricks = room.gameType === 'envido' ? 3 : (room.maxPlayers === 2 ? 20 : 13);
   if (gs.tricks.length === maxTricks) {
     evaluateRoundEnd(room);
   } else {
@@ -753,52 +832,82 @@ function evaluateRoundEnd(room) {
       });
     });
 
-    // Determine Tute Cabrero: Player in the middle loses (gains a poroto/point)
-    // List scores: [ { seat, score }, ... ]
-    const playerScores = room.players.map(p => ({
-      seat: p.seat,
-      name: p.name,
-      score: gs.tuteRoundScores[p.seat]
-    }));
+    if (room.maxPlayers === 2) {
+      // 2 Players: The player with the LOWER score loses (gets 1 defeat point)
+      const playerScores = room.players.map(p => ({
+        seat: p.seat,
+        name: p.name,
+        score: gs.tuteRoundScores[p.seat]
+      }));
 
-    // Sort scores ascending
-    playerScores.sort((a, b) => a.score - b.score);
+      io.to(room.id).emit('log_message', { 
+        text: `📊 Puntuaciones de esta ronda: ${playerScores[0].name}: ${playerScores[0].score} | ${playerScores[1].name}: ${playerScores[1].score}`, 
+        type: 'system' 
+      });
 
-    const lowest = playerScores[0];
-    const middle = playerScores[1];
-    const highest = playerScores[2];
+      let loserSeat;
+      let loserName;
+      if (playerScores[0].score === playerScores[1].score) {
+        // Tie breaker: winner of last trick wins, other loses
+        const lastTrickWinner = gs.tricks[gs.tricks.length - 1].winnerSeat;
+        loserSeat = lastTrickWinner === 0 ? 1 : 0;
+        const loserPlayer = room.players.find(p => p.seat === loserSeat);
+        loserName = loserPlayer ? loserPlayer.name : `Asiento ${loserSeat + 1}`;
+        io.to(room.id).emit('log_message', { text: `¡Empate a puntos! Desempata el ganador de las diez de últimas.`, type: 'system' });
+      } else {
+        // Find lower score
+        const sorted = [...playerScores].sort((a, b) => a.score - b.score);
+        loserSeat = sorted[0].seat;
+        loserName = sorted[0].name;
+      }
 
-    io.to(room.id).emit('log_message', { 
-      text: `📊 Puntuaciones de esta ronda: ${lowest.name}: ${lowest.score} | ${middle.name}: ${middle.score} | ${highest.name}: ${highest.score}`, 
-      type: 'system' 
-    });
-
-    // The middle player loses!
-    // Check if there are ties
-    let loserSeat = middle.seat;
-    let loserName = middle.name;
-    let tie = false;
-
-    if (middle.score === lowest.score && middle.score === highest.score) {
-      // 3-way tie!
-      io.to(room.id).emit('log_message', { text: `¡Empate triple de puntos! Todos los jugadores se salvan.`, type: 'system' });
-      loserSeat = -1;
-    } else if (middle.score === lowest.score) {
-      // Tie for middle and lowest. In some rules both lose, here let's add poroto to both.
-      gs.tuteMatchPoints[middle.seat]++;
-      gs.tuteMatchPoints[lowest.seat]++;
-      io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${lowest.name}!`, type: 'system' });
-      loserSeat = -2;
-    } else if (middle.score === highest.score) {
-      // Tie for middle and highest. Both lose.
-      gs.tuteMatchPoints[middle.seat]++;
-      gs.tuteMatchPoints[highest.seat]++;
-      io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${highest.name}!`, type: 'system' });
-      loserSeat = -2;
-    } else {
-      // Standard single middle loser
       gs.tuteMatchPoints[loserSeat]++;
-      io.to(room.id).emit('log_message', { text: `💀 ${loserName} es el del medio y pierde esta ronda (Suma 1 punto de derrota).`, type: 'system' });
+      io.to(room.id).emit('log_message', { text: `💀 ${loserName} tiene menos puntos y pierde esta ronda (Suma 1 punto de derrota).`, type: 'system' });
+
+    } else {
+      // Determine Tute Cabrero: Player in the middle loses (gains a poroto/point)
+      // List scores: [ { seat, score }, ... ]
+      const playerScores = room.players.map(p => ({
+        seat: p.seat,
+        name: p.name,
+        score: gs.tuteRoundScores[p.seat]
+      }));
+
+      // Sort scores ascending
+      playerScores.sort((a, b) => a.score - b.score);
+
+      const lowest = playerScores[0];
+      const middle = playerScores[1];
+      const highest = playerScores[2];
+
+      io.to(room.id).emit('log_message', { 
+        text: `📊 Puntuaciones de esta ronda: ${lowest.name}: ${lowest.score} | ${middle.name}: ${middle.score} | ${highest.name}: ${highest.score}`, 
+        type: 'system' 
+      });
+
+      // The middle player loses!
+      // Check if there are ties
+      let loserSeat = middle.seat;
+      let loserName = middle.name;
+
+      if (middle.score === lowest.score && middle.score === highest.score) {
+        // 3-way tie!
+        io.to(room.id).emit('log_message', { text: `¡Empate triple de puntos! Todos los jugadores se salvan.`, type: 'system' });
+      } else if (middle.score === lowest.score) {
+        // Tie for middle and lowest. Both lose.
+        gs.tuteMatchPoints[middle.seat]++;
+        gs.tuteMatchPoints[lowest.seat]++;
+        io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${lowest.name}!`, type: 'system' });
+      } else if (middle.score === highest.score) {
+        // Tie for middle and highest. Both lose.
+        gs.tuteMatchPoints[middle.seat]++;
+        gs.tuteMatchPoints[highest.seat]++;
+        io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${highest.name}!`, type: 'system' });
+      } else {
+        // Standard single middle loser
+        gs.tuteMatchPoints[loserSeat]++;
+        io.to(room.id).emit('log_message', { text: `💀 ${loserName} es el del medio y pierde esta ronda (Suma 1 punto de derrota).`, type: 'system' });
+      }
     }
 
     // Check if anyone has reached 3 defeat points (match end)

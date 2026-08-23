@@ -115,31 +115,47 @@ btnCopyLink.addEventListener('click', () => {
     });
 });
 
+function updateLobbyConfigUI(gameType, maxPlayers) {
+  selectGameType.value = gameType;
+  
+  // Re-populate player count options dynamically
+  selectEnvidoPlayers.innerHTML = '';
+  if (gameType === 'envido') {
+    selectEnvidoPlayers.innerHTML = `
+      <option value="4">4 Jugadores (2 vs 2)</option>
+      <option value="6">6 Jugadores (3 vs 3)</option>
+    `;
+  } else {
+    selectEnvidoPlayers.innerHTML = `
+      <option value="2">2 Jugadores</option>
+      <option value="3">3 Jugadores</option>
+    `;
+  }
+  
+  selectEnvidoPlayers.value = maxPlayers;
+}
+
 // CONFIG CHANGE HANDLERS
 selectGameType.addEventListener('change', () => {
   const gameType = selectGameType.value;
-  if (gameType === 'envido') {
-    envidoPlayersGroup.style.display = 'block';
-    socket.emit('change_config', { 
-      roomId, 
-      gameType, 
-      maxPlayers: selectEnvidoPlayers.value 
-    });
-  } else {
-    envidoPlayersGroup.style.display = 'none';
-    socket.emit('change_config', { 
-      roomId, 
-      gameType, 
-      maxPlayers: 3 
-    });
-  }
+  const maxPlayers = gameType === 'envido' ? 4 : 2; // Default to 2 for Tute, 4 for Envido
+  
+  updateLobbyConfigUI(gameType, maxPlayers);
+  socket.emit('change_config', { 
+    roomId, 
+    gameType, 
+    maxPlayers 
+  });
 });
 
 selectEnvidoPlayers.addEventListener('change', () => {
+  const gameType = selectGameType.value;
+  const maxPlayers = selectEnvidoPlayers.value;
+  
   socket.emit('change_config', { 
     roomId, 
-    gameType: 'envido', 
-    maxPlayers: selectEnvidoPlayers.value 
+    gameType, 
+    maxPlayers 
   });
 });
 
@@ -318,8 +334,7 @@ socket.on('room_state', ({ gameType, maxPlayers, players, gameState }) => {
     // Config elements editable
     selectGameType.disabled = false;
     selectEnvidoPlayers.disabled = false;
-    selectGameType.value = gameType;
-    selectEnvidoPlayers.value = maxPlayers;
+    updateLobbyConfigUI(gameType, maxPlayers);
 
     renderLobbySeats(maxPlayers, players);
   } else {
@@ -334,7 +349,7 @@ socket.on('room_state', ({ gameType, maxPlayers, players, gameState }) => {
 // RENDERING GAMEPLAY BOARD
 function renderGameBoard(gameType, maxPlayers, players, gameState) {
   // 1. Setup Header labels
-  infoGameType.innerText = gameType === 'envido' ? `Envido Canario (${maxPlayers} jug.)` : 'Tute (3 jugadores)';
+  infoGameType.innerText = gameType === 'envido' ? `Envido Canario (${maxPlayers} jug.)` : `Tute (${maxPlayers} jugadores)`;
   
   if (myTeam) {
     teamBadge.style.display = 'inline-block';
@@ -402,7 +417,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
   }
 
   // 5. Render Seating spots and played cards
-  pokerTable.className = `poker-table players-${gameType === 'tute' ? 3 : maxPlayers}`;
+  pokerTable.className = `poker-table players-${maxPlayers}`;
   tableSeatsContainer.innerHTML = '';
 
   for (let i = 0; i < maxPlayers; i++) {

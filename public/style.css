@@ -533,6 +533,13 @@ body {
 .poker-table.players-3 .spot-1 { top: 30px; left: 15%; }
 .poker-table.players-3 .spot-2 { top: 30px; right: 15%; }
 
+/* For 2 players (Tute 2 jugadores)
+   Spot 0: Bottom Center
+   Spot 1: Top Center
+*/
+.poker-table.players-2 .spot-0 { bottom: 10px; left: 50%; transform: translateX(-50%); }
+.poker-table.players-2 .spot-1 { top: 10px; left: 50%; transform: translateX(-50%); }
+
 
 .player-spot .player-avatar {
   width: 50px;
