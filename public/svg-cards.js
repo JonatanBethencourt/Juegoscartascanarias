@@ -157,110 +157,134 @@
   const COURT_GRAPHICS = {
     10: { // Sota (Standing Page)
       name: 'SOTA',
-      getGraphic: (color, suit) => `
-        <g transform="translate(100, 145) scale(1.15)">
-          <!-- Cloak back -->
-          <path d="M -15 20 C -25 35, -20 50, -5 50 M 15 20 C 25 35, 20 50, 5 50" fill="none" stroke="${color}" stroke-width="2.5" opacity="0.5" />
-          
-          <!-- Legs and Boots -->
-          <path d="M -8 15 L -8 42 L -15 42 L -13 47 L -2 47 L -4 15 Z" fill="#37474f" stroke="#263238" stroke-width="0.8" />
-          <path d="M 8 15 L 8 42 L 15 42 L 13 47 L 2 47 L 4 15 Z" fill="#37474f" stroke="#263238" stroke-width="0.8" />
-          
-          <!-- Tunic/Jacket -->
-          <path d="M -16 -12 L 16 -12 L 14 18 L -14 18 Z" fill="${color}" stroke="#212121" stroke-width="1.2" />
-          <!-- Belt with gold buckle -->
-          <rect x="-15" y="4" width="30" height="4.5" fill="#37474f" />
-          <rect x="-4" y="2" width="8" height="8" fill="#ffd54f" stroke="#b8860b" stroke-width="1" rx="1.5" />
-          
-          <!-- Arms -->
-          <path d="M -16 -12 C -24 0, -20 10, -14 14" fill="none" stroke="#37474f" stroke-width="4.5" stroke-linecap="round" />
-          <path d="M 16 -12 C 24 0, 20 10, 14 14" fill="none" stroke="#37474f" stroke-width="4.5" stroke-linecap="round" />
-          
-          <!-- Neck & Face -->
-          <rect x="-3" y="-17" width="6" height="6" fill="#ffe0b2" />
-          <circle cx="0" cy="-24" r="8" fill="#ffe0b2" stroke="#e0f2f1" stroke-width="0.5" />
-          <!-- Hair (Blond/Brown) -->
-          <path d="M -8 -26 C -8 -30, 8 -30, 8 -26 C 9 -22, -9 -22, -8 -26 Z" fill="#ffb74d" />
-          
-          <!-- Feathered Hat -->
-          <path d="M -11 -28 C -11 -34, 11 -34, 11 -28 Z" fill="#263238" />
-          <path d="M 4 -34 Q 18 -46, 12 -33 Z" fill="#e23d3d" /> <!-- Red feather -->
-        </g>
-      `
+      getGraphic: (color, suit) => {
+        const symbol = SUITS[suit.toLowerCase()].getSymbol(1);
+        return `
+          <g transform="translate(100, 145) scale(1.15)">
+            <!-- Cloak back -->
+            <path d="M -15 20 C -25 35, -20 50, -5 50 M 15 20 C 25 35, 20 50, 5 50" fill="none" stroke="${color}" stroke-width="2.5" opacity="0.5" />
+            
+            <!-- Legs and Boots -->
+            <path d="M -8 15 L -8 42 L -15 42 L -13 47 L -2 47 L -4 15 Z" fill="#37474f" stroke="#263238" stroke-width="0.8" />
+            <path d="M 8 15 L 8 42 L 15 42 L 13 47 L 2 47 L 4 15 Z" fill="#37474f" stroke="#263238" stroke-width="0.8" />
+            
+            <!-- Tunic/Jacket -->
+            <path d="M -16 -12 L 16 -12 L 14 18 L -14 18 Z" fill="${color}" stroke="#212121" stroke-width="1.2" />
+            <!-- Belt with gold buckle -->
+            <rect x="-15" y="4" width="30" height="4.5" fill="#37474f" />
+            <rect x="-4" y="2" width="8" height="8" fill="#ffd54f" stroke="#b8860b" stroke-width="1" rx="1.5" />
+            
+            <!-- Arms (one on hip, one holding symbol) -->
+            <path d="M -16 -12 C -24 0, -20 10, -14 14" fill="none" stroke="#37474f" stroke-width="4.5" stroke-linecap="round" />
+            <path d="M 16 -12 C 24 -10, 26 12, 16 12" fill="none" stroke="#37474f" stroke-width="4.5" stroke-linecap="round" />
+            
+            <!-- Neck & Face -->
+            <rect x="-3" y="-17" width="6" height="6" fill="#ffe0b2" />
+            <circle cx="0" cy="-24" r="8" fill="#ffe0b2" stroke="#e0f2f1" stroke-width="0.5" />
+            <!-- Hair (Blond/Brown) -->
+            <path d="M -8 -26 C -8 -30, 8 -30, 8 -26 C 9 -22, -9 -22, -8 -26 Z" fill="#ffb74d" />
+            
+            <!-- Feathered Hat -->
+            <path d="M -11 -28 C -11 -34, 11 -34, 11 -28 Z" fill="#263238" />
+            <path d="M 4 -34 Q 18 -46, 12 -33 Z" fill="#e23d3d" /> <!-- Red feather -->
+            
+            <!-- Suit Symbol in hand -->
+            <g transform="translate(10, 0) scale(0.35)">
+              ${symbol}
+            </g>
+          </g>
+        `;
+      }
     },
     11: { // Caballo (Knight riding a rearing horse)
       name: 'CABALLO',
-      getGraphic: (color, suit) => `
-        <g transform="translate(100, 140) scale(0.95)">
-          <!-- Horse Tail -->
-          <path d="M -30 22 C -45 35, -35 55, -28 65" fill="none" stroke="#4e342e" stroke-width="5" stroke-linecap="round" />
-          
-          <!-- Rearing Horse Body -->
-          <path d="M -26 45 C -26 35, -20 28, -22 15 C -24 -2, -18 -18, 5 -18 C 18 -18, 28 -10, 24 15 C 22 28, 26 40, 22 45 L 14 45 L 16 28 L -14 28 L -16 45 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="2" />
-          
-          <!-- Horse Head and Neck -->
-          <path d="M 5 -18 C 12 -28, 25 -32, 28 -20 C 30 -10, 22 -6, 16 -12 C 12 -16, 5 -18, 5 -18 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="1.8" />
-          <path d="M 24 -24 Q 28 -34, 20 -28" fill="none" stroke="#4e342e" stroke-width="2.5" /> <!-- Ears -->
-          <!-- Mane -->
-          <path d="M 5 -18 Q 18 -12, 12 5 M 8 -8 Q 18 -2, 14 12" fill="none" stroke="#4e342e" stroke-width="2" />
-          
-          <!-- Front Legs (Raised) -->
-          <path d="M 22 -3 Q 36 -6, 32 6 L 27 2" fill="none" stroke="#8d6e63" stroke-width="6.5" stroke-linecap="round" />
-          <path d="M 18 -8 Q 32 -10, 28 2 L 23 -2" fill="none" stroke="#8d6e63" stroke-width="6.5" stroke-linecap="round" />
-          
-          <!-- Hind Legs -->
-          <path d="M -22 35 L -26 58 L -34 58 L -30 63 L -18 63 L -16 35 Z" fill="#705247" stroke="#4e342e" stroke-width="1" />
-          <path d="M 20 35 L 16 58 L 8 58 L 12 63 L 26 63 L 22 35 Z" fill="#705247" stroke="#4e342e" stroke-width="1" />
-          
-          <!-- Rider (Knight) -->
-          <!-- Torso -->
-          <path d="M -6 -8 L 8 -8 L 5 -25 L -9 -25 Z" fill="${color}" stroke="#212121" stroke-width="1" />
-          <!-- Knight Helmet -->
-          <circle cx="-1" cy="-30" r="6" fill="#cfd8dc" stroke="#455a64" stroke-width="1" />
-          <path d="M -7 -30 L 5 -30 L 3 -26 L -5 -26 Z" fill="#ffd54f" /> <!-- Visor -->
-          <path d="M -1 -36 Q 8 -46, 2 -35 Z" fill="#ff9800" /> <!-- Plume -->
-          <!-- Legs of Rider -->
-          <path d="M -10 -8 Q -16 6 -8 24" fill="none" stroke="#37474f" stroke-width="5" stroke-linecap="round" />
-        </g>
-      `
+      getGraphic: (color, suit) => {
+        const symbol = SUITS[suit.toLowerCase()].getSymbol(1);
+        return `
+          <g transform="translate(100, 140) scale(0.95)">
+            <!-- Horse Tail -->
+            <path d="M -30 22 C -45 35, -35 55, -28 65" fill="none" stroke="#4e342e" stroke-width="5" stroke-linecap="round" />
+            
+            <!-- Rearing Horse Body -->
+            <path d="M -26 45 C -26 35, -20 28, -22 15 C -24 -2, -18 -18, 5 -18 C 18 -18, 28 -10, 24 15 C 22 28, 26 40, 22 45 L 14 45 L 16 28 L -14 28 L -16 45 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="2" />
+            
+            <!-- Horse Head and Neck -->
+            <path d="M 5 -18 C 12 -28, 25 -32, 28 -20 C 30 -10, 22 -6, 16 -12 C 12 -16, 5 -18, 5 -18 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="1.8" />
+            <path d="M 24 -24 Q 28 -34, 20 -28" fill="none" stroke="#4e342e" stroke-width="2.5" /> <!-- Ears -->
+            <!-- Mane -->
+            <path d="M 5 -18 Q 18 -12, 12 5 M 8 -8 Q 18 -2, 14 12" fill="none" stroke="#4e342e" stroke-width="2" />
+            
+            <!-- Front Legs (Raised) -->
+            <path d="M 22 -3 Q 36 -6, 32 6 L 27 2" fill="none" stroke="#8d6e63" stroke-width="6.5" stroke-linecap="round" />
+            <path d="M 18 -8 Q 32 -10, 28 2 L 23 -2" fill="none" stroke="#8d6e63" stroke-width="6.5" stroke-linecap="round" />
+            
+            <!-- Hind Legs -->
+            <path d="M -22 35 L -26 58 L -34 58 L -30 63 L -18 63 L -16 35 Z" fill="#705247" stroke="#4e342e" stroke-width="1" />
+            <path d="M 20 35 L 16 58 L 8 58 L 12 63 L 26 63 L 22 35 Z" fill="#705247" stroke="#4e342e" stroke-width="1" />
+            
+            <!-- Rider (Knight) -->
+            <!-- Torso -->
+            <path d="M -6 -8 L 8 -8 L 5 -25 L -9 -25 Z" fill="${color}" stroke="#212121" stroke-width="1" />
+            <!-- Knight Helmet -->
+            <circle cx="-1" cy="-30" r="6" fill="#cfd8dc" stroke="#455a64" stroke-width="1" />
+            <path d="M -7 -30 L 5 -30 L 3 -26 L -5 -26 Z" fill="#ffd54f" /> <!-- Visor -->
+            <path d="M -1 -36 Q 8 -46, 2 -35 Z" fill="#ff9800" /> <!-- Plume -->
+            <!-- Legs of Rider -->
+            <path d="M -10 -8 Q -16 6 -8 24" fill="none" stroke="#37474f" stroke-width="5" stroke-linecap="round" />
+            
+            <!-- Suit Symbol held by rider -->
+            <g transform="translate(18, -48) scale(0.35)">
+              ${symbol}
+            </g>
+          </g>
+        `;
+      }
     },
     12: { // Rey (Standing King with scepter and crown)
       name: 'REY',
-      getGraphic: (color, suit) => `
-        <g transform="translate(100, 150) scale(1.12)">
-          <!-- Royal Mantle (Back) -->
-          <path d="M -25 -10 L 25 -10 C 35 25, 30 50, 22 52 L -22 52 C -30 50, -35 25, -25 -10 Z" fill="#3e2723" opacity="0.75" stroke="#271c19" stroke-width="1" />
-          <path d="M -25 -10 L 25 -10 L 25 -6 L -25 -6 Z" fill="#ffd54f" /> <!-- Fur collar -->
-          
-          <!-- Royal Robe / Tunic -->
-          <path d="M -20 -8 C -20 -8, -25 20, -18 50 L 18 50 C 25 20, 20 -8, 20 -8 Z" fill="${color}" stroke="#111" stroke-width="1.2" />
-          <!-- Gold central trim with details -->
-          <path d="M -4 -8 L 4 -8 L 5 50 L -5 50 Z" fill="#ffd54f" />
-          <circle cx="0" cy="5" r="2" fill="#e23d3d" />
-          <circle cx="0" cy="20" r="2" fill="#4caf50" />
-          <circle cx="0" cy="35" r="2" fill="#e23d3d" />
-          
-          <!-- Crown (Golden with spikes) -->
-          <path d="M -14 -27 L 14 -27 L 11 -18 L 0 -30 L -11 -18 Z" fill="#ffd54f" stroke="#b8860b" stroke-width="1.5" />
-          <circle cx="-14" cy="-27" r="1.5" fill="#e23d3d" />
-          <circle cx="0" cy="-30" r="2" fill="#ffeb3b" />
-          <circle cx="14" cy="-27" r="1.5" fill="#e23d3d" />
-          
-          <!-- Head and Beard -->
-          <circle cx="0" cy="-15" r="7" fill="#ffe0b2" />
-          <path d="M -7 -13 Q 0 -4 7 -13 L 5 -3 L -5 -3 Z" fill="#ffffff" stroke="#cfd8dc" stroke-width="0.8" /> <!-- White Beard -->
-          <path d="M -8 -16 Q 0 -10 8 -16" fill="none" stroke="#ffb74d" stroke-width="2.5" /> <!-- Hair locks -->
-          
-          <!-- Arms -->
-          <path d="M -20 -8 Q -28 10 -20 25" fill="none" stroke="#ffd54f" stroke-width="4.5" stroke-linecap="round" />
-          <path d="M 20 -8 Q 28 10 20 25" fill="none" stroke="#ffd54f" stroke-width="4.5" stroke-linecap="round" />
-          
-          <!-- Scepter / Wand -->
-          <line x1="-24" y1="30" x2="-14" y2="-5" stroke="#ffd54f" stroke-width="2.5" stroke-linecap="round" />
-          <path d="M -14 -5 C -17 -8, -11 -8, -14 -5 Z" fill="#ffeb3b" stroke="#b8860b" />
-          <circle cx="-14" cy="-5" r="3" fill="#e23d3d" />
-        </g>
-      `
+      getGraphic: (color, suit) => {
+        const symbol = SUITS[suit.toLowerCase()].getSymbol(1);
+        return `
+          <g transform="translate(100, 150) scale(1.12)">
+            <!-- Royal Mantle (Back) -->
+            <path d="M -25 -10 L 25 -10 C 35 25, 30 50, 22 52 L -22 52 C -30 50, -35 25, -25 -10 Z" fill="#3e2723" opacity="0.75" stroke="#271c19" stroke-width="1" />
+            <path d="M -25 -10 L 25 -10 L 25 -6 L -25 -6 Z" fill="#ffd54f" /> <!-- Fur collar -->
+            
+            <!-- Royal Robe / Tunic -->
+            <path d="M -20 -8 C -20 -8, -25 20, -18 50 L 18 50 C 25 20, 20 -8, 20 -8 Z" fill="${color}" stroke="#111" stroke-width="1.2" />
+            <!-- Gold central trim with details -->
+            <path d="M -4 -8 L 4 -8 L 5 50 L -5 50 Z" fill="#ffd54f" />
+            <circle cx="0" cy="5" r="2" fill="#e23d3d" />
+            <circle cx="0" cy="20" r="2" fill="#4caf50" />
+            <circle cx="0" cy="35" r="2" fill="#e23d3d" />
+            
+            <!-- Crown (Golden with spikes) -->
+            <path d="M -14 -27 L 14 -27 L 11 -18 L 0 -30 L -11 -18 Z" fill="#ffd54f" stroke="#b8860b" stroke-width="1.5" />
+            <circle cx="-14" cy="-27" r="1.5" fill="#e23d3d" />
+            <circle cx="0" cy="-30" r="2" fill="#ffeb3b" />
+            <circle cx="14" cy="-27" r="1.5" fill="#e23d3d" />
+            
+            <!-- Head and Beard -->
+            <circle cx="0" cy="-15" r="7" fill="#ffe0b2" />
+            <path d="M -7 -13 Q 0 -4 7 -13 L 5 -3 L -5 -3 Z" fill="#ffffff" stroke="#cfd8dc" stroke-width="0.8" /> <!-- White Beard -->
+            <path d="M -8 -16 Q 0 -10 8 -16" fill="none" stroke="#ffb74d" stroke-width="2.5" /> <!-- Hair locks -->
+            
+            <!-- Arms (one holding scepter, one holding symbol) -->
+            <path d="M -20 -8 Q -28 10 -20 25" fill="none" stroke="#ffd54f" stroke-width="4.5" stroke-linecap="round" />
+            <path d="M 20 -8 Q 28 10 18 18" fill="none" stroke="#ffd54f" stroke-width="4.5" stroke-linecap="round" />
+            
+            <!-- Scepter / Wand -->
+            <line x1="-24" y1="30" x2="-14" y2="-5" stroke="#ffd54f" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M -14 -5 C -17 -8, -11 -8, -14 -5 Z" fill="#ffeb3b" stroke="#b8860b" />
+            <circle cx="-14" cy="-5" r="3" fill="#e23d3d" />
+            
+            <!-- Suit Symbol held by King -->
+            <g transform="translate(10, 8) scale(0.38)">
+              ${symbol}
+            </g>
+          </g>
+        `;
+      }
     }
   };
 
