@@ -710,6 +710,15 @@ const rtcConfig = {
 const btnLobbyVoice = document.getElementById('btn-lobby-voice');
 const btnGameVoice = document.getElementById('btn-game-voice');
 
+// Helper to resolve player names for voice status logs
+function getPlayerNameBySocketId(socketId) {
+  if (roomState && roomState.players) {
+    const p = roomState.players.find(player => player && player.socketId === socketId);
+    return p ? p.name : 'Jugador';
+  }
+  return 'Jugador';
+}
+
 async function connectVoiceChat() {
   if (voiceStream) return;
   try {
@@ -726,6 +735,26 @@ async function connectVoiceChat() {
         btn.disabled = true; // Disable so they don't click again
       }
     });
+    
+    // Add our local tracks to any existing peer connections that were created before we got our stream!
+    for (const peerId in peerConnections) {
+      const pc = peerConnections[peerId];
+      voiceStream.getTracks().forEach(track => {
+        const senders = pc.getSenders();
+        const alreadyAdded = senders.some(s => s.track === track);
+        if (!alreadyAdded) {
+          pc.addTrack(track, voiceStream);
+        }
+      });
+      // Trigger renegotiation offer
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit('webrtc_signal', { to: peerId, signal: { type: 'offer', sdp: offer.sdp } });
+      } catch (e) {
+        console.error("Error al renegociar tracks:", e);
+      }
+    }
     
     socket.emit('voice_ready', { roomId });
   } catch (err) {
@@ -754,14 +783,26 @@ function createPeerConnection(peerId, isInitiator) {
   
   pc.ontrack = (event) => {
     let audioEl = document.getElementById(`audio-peer-${peerId}`);
-    if (!audioEl) {
+    const isNew = !audioEl;
+    if (isNew) {
       audioEl = document.createElement('audio');
       audioEl.id = `audio-peer-${peerId}`;
       audioEl.autoplay = true;
       audioEl.setAttribute('playsinline', 'true');
       document.body.appendChild(audioEl);
+      
+      const peerName = getPlayerNameBySocketId(peerId);
+      logMsg(`🔊 Conexión de audio recibida de ${peerName}.`, "system");
     }
-    audioEl.srcObject = event.streams[0];
+    
+    // Fallback: use event.streams[0] or construct a new stream from the track if empty
+    if (event.streams && event.streams[0]) {
+      audioEl.srcObject = event.streams[0];
+    } else {
+      const remoteStream = new MediaStream();
+      remoteStream.addTrack(event.track);
+      audioEl.srcObject = remoteStream;
+    }
     
     // Explicitly play stream and handle autoplay restrictions
     audioEl.play().catch(err => {
