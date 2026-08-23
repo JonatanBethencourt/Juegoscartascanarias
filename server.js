@@ -595,6 +595,67 @@ io.on('connection', (socket) => {
     }
   });
 
+  // SWAP VIRA (Tute 2 players)
+  socket.on('swap_vira', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameType !== 'tute' || room.maxPlayers !== 2) return;
+    const gs = room.gameState;
+    if (gs.status !== 'playing' || !gs.viraCard || gs.deckCount === 0) return;
+
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player) return;
+
+    // Check if player has won at least one trick
+    const wonTricks = (gs.tricks || []).filter(t => t.winnerSeat === player.seat).length;
+    if (wonTricks === 0) {
+      socket.emit('log_message', { text: `No puedes cambiar la vira hasta que ganes al menos una baza.`, type: 'system' });
+      return;
+    }
+
+    const hand = gs.hands[socket.id];
+    const trumpSuit = gs.trumpSuit;
+    const viraNum = gs.viraCard.number;
+
+    let swapCardIndex = -1;
+    let cardToExchange = null;
+
+    if ([1, 3, 10, 11, 12].includes(viraNum)) {
+      // Must have the 7 of trump
+      swapCardIndex = hand.findIndex(c => c.suit === trumpSuit && c.number === 7);
+      if (swapCardIndex !== -1) cardToExchange = hand[swapCardIndex];
+    } else if ([7, 6, 5, 4, 2].includes(viraNum)) {
+      // Must have the 2 or 3 of trump
+      swapCardIndex = hand.findIndex(c => c.suit === trumpSuit && c.number === 2);
+      if (swapCardIndex === -1) {
+        swapCardIndex = hand.findIndex(c => c.suit === trumpSuit && c.number === 3);
+      }
+      if (swapCardIndex !== -1) cardToExchange = hand[swapCardIndex];
+    }
+
+    if (swapCardIndex === -1 || !cardToExchange) {
+      socket.emit('log_message', { text: `No tienes la carta requerida del palo de triunfo para cambiar la vira.`, type: 'system' });
+      return;
+    }
+
+    // Do the swap!
+    const oldVira = gs.viraCard;
+    gs.viraCard = cardToExchange;
+    hand[swapCardIndex] = oldVira;
+
+    io.to(roomId).emit('log_message', {
+      text: `🔄 ${player.name} ha cambiado la vira: entrega el ${cardToExchange.number} de ${cardToExchange.suit} y se queda con el ${oldVira.number} de ${oldVira.suit}.`,
+      type: 'system'
+    });
+
+    // Broadcast updated state to all clients
+    io.to(roomId).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: gs
+    });
+  });
+
   // PRIVATE SIGN ROUTING (Envido only)
   socket.on('send_sign', ({ roomId, signName }) => {
     const room = rooms[roomId];

@@ -53,6 +53,7 @@ const tuteDeclarationsPanel = document.getElementById('tute-declarations-panel')
 const btnTute40 = document.getElementById('btn-tute-40');
 const btnTute20 = document.getElementById('btn-tute-20');
 const btnTuteDeclare = document.getElementById('btn-tute-declarar');
+const btnSwapVira = document.getElementById('btn-swap-vira');
 
 // Chat & Log
 const gameLog = document.getElementById('game-log');
@@ -467,8 +468,38 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
         alertFlash(`📢 Triunfo (Vira): ${getCardNameSpanish(gameState.viraCard)}`);
       });
     }
+
+    // Check swap eligibility
+    let canSwap = false;
+    if (gameType === 'tute' && maxPlayers === 2 && gameState.status === 'playing' && mySeat !== null && (gameState.deckCount || 0) > 0) {
+      const wonTricks = (gameState.tricks || []).filter(t => t.winnerSeat === mySeat).length;
+      if (wonTricks > 0) {
+        const hand = gameState.hands[socket.id] || [];
+        const trumpSuit = gameState.trumpSuit;
+        const viraNum = gameState.viraCard.number;
+        const hasSeven = hand.some(c => c.suit === trumpSuit && c.number === 7);
+        const hasTwo = hand.some(c => c.suit === trumpSuit && c.number === 2);
+        const hasThree = hand.some(c => c.suit === trumpSuit && c.number === 3);
+
+        // Standard: Vira is high card [1, 3, 10, 11, 12], player can swap with 7
+        if ([1, 3, 10, 11, 12].includes(viraNum) && hasSeven) {
+          canSwap = true;
+        }
+        // Vira is 7 or lower [7, 6, 5, 4, 2], player can swap with 2 or 3
+        if ([7, 6, 5, 4, 2].includes(viraNum) && (hasTwo || hasThree)) {
+          canSwap = true;
+        }
+      }
+    }
+
+    if (canSwap) {
+      btnSwapVira.style.display = 'block';
+    } else {
+      btnSwapVira.style.display = 'none';
+    }
   } else {
     viraCardSlot.innerHTML = '';
+    btnSwapVira.style.display = 'none';
   }
 
   // 5. Render Seating spots and played cards
@@ -661,6 +692,13 @@ function playSelectedCard() {
   }
 }
 btnPlayCard.addEventListener('click', playSelectedCard);
+
+// SWAP VIRA TRIGGER
+btnSwapVira.addEventListener('click', () => {
+  if (roomState) {
+    socket.emit('swap_vira', { roomId: roomId });
+  }
+});
 
 // SIGN SEND TRIGGERS (Envido)
 document.querySelectorAll('.btn-sign').forEach(button => {
