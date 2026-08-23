@@ -694,7 +694,7 @@ function checkTuteCantoOptions(gameState) {
   const wonTrick = gameState.tricks.some(t => t.winnerSeat === mySeatIndex);
   if (!wonTrick) return;
 
-  const trumpSuit = gameState.viraCard.suit;
+  const trumpSuit = gameState.trumpSuit;
 
   // Analyze hand for Kings (12) and Knights (11)
   const kings = hand.filter(c => c.number === 12);
