@@ -1032,6 +1032,13 @@ socket.on('disconnect_peer_voice', ({ socketId }) => {
   if (wrapper) wrapper.remove();
 });
 
+socket.on('webrtc_config', ({ iceServers }) => {
+  if (iceServers) {
+    rtcConfig.iceServers = iceServers;
+    console.log("Configuración de WebRTC cargada desde el servidor:", iceServers);
+  }
+});
+
 // Toggle buttons for camera/mic
 let isAudioEnabled = true;
 let isVideoEnabled = true;

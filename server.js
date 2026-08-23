@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
 const { Server } = require('socket.io');
 const path = require('path');
 
@@ -13,6 +14,55 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3001;
+
+// Metered TURN Server API Configuration
+// Set METERED_SECRET_KEY as an environment variable in Render (or paste it below)
+const METERED_SECRET_KEY = process.env.METERED_SECRET_KEY || '6f315de921e7b40756c12e513d9e85fd8e7c';
+const METERED_API_URL = 'https://jonymaike.metered.live/api/v1/turn/credentials';
+
+let cachedIceServers = null;
+let lastFetchTime = 0;
+
+function getIceServers() {
+  const defaultServers = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ];
+
+  if (!METERED_SECRET_KEY) {
+    return Promise.resolve(defaultServers);
+  }
+
+  const now = Date.now();
+  if (cachedIceServers && (now - lastFetchTime < 30 * 60 * 1000)) {
+    return Promise.resolve(cachedIceServers);
+  }
+
+  return new Promise((resolve) => {
+    https.get(`${METERED_API_URL}?apiKey=${METERED_SECRET_KEY}`, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) {
+            cachedIceServers = [...defaultServers, ...parsed];
+          } else {
+            cachedIceServers = defaultServers;
+          }
+          lastFetchTime = now;
+          resolve(cachedIceServers);
+        } catch (e) {
+          console.error("Error al procesar credenciales de TURN:", e);
+          resolve(defaultServers);
+        }
+      });
+    }).on('error', (err) => {
+      console.error("Error al obtener credenciales de TURN desde Metered:", err);
+      resolve(defaultServers);
+    });
+  });
+}
 
 // Serve static client files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -331,6 +381,9 @@ io.on('connection', (socket) => {
     
     socket.emit('log_message', { text: `Te has unido a la sala ${roomId}.`, type: 'system' });
     socket.to(roomId).emit('log_message', { text: `${name} se ha unido a la sala.`, type: 'system' });
+    getIceServers().then((iceServers) => {
+      socket.emit('webrtc_config', { iceServers });
+    });
   });
 
   // CHANGE GAME CONFIG (only in lobby)
