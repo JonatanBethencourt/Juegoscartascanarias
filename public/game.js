@@ -722,21 +722,26 @@ function getPlayerNameBySocketId(socketId) {
 async function connectVoiceChat() {
   if (voiceStream) return;
   try {
-    voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    logMsg("🎙️ Chat de Voz activado. Puedes hablar con el micrófono abierto.", "system");
+    // Request both camera and microphone
+    voiceStream = await navigator.mediaDevices.getUserMedia({ 
+      audio: true, 
+      video: { width: 240, height: 180, frameRate: 15 } 
+    });
+    logMsg("🎙️/📷 Cámara y micrófono activados. Te has unido al canal de video.", "system");
+    setupLocalVideo();
     
     // Update button visual status
     const buttons = [btnLobbyVoice, btnGameVoice];
     buttons.forEach(btn => {
       if (btn) {
-        btn.innerText = '🎙️ Voz Conectada';
-        btn.style.background = '#4caf50'; // Green background
+        btn.innerText = '🎙️/📷 Conectado';
+        btn.style.background = '#4caf50';
         btn.style.color = 'white';
-        btn.disabled = true; // Disable so they don't click again
+        btn.disabled = true;
       }
     });
-    
-    // Add our local tracks to any existing peer connections that were created before we got our stream!
+
+    // Add local tracks to existing peer connections
     for (const peerId in peerConnections) {
       const pc = peerConnections[peerId];
       voiceStream.getTracks().forEach(track => {
@@ -746,7 +751,7 @@ async function connectVoiceChat() {
           pc.addTrack(track, voiceStream);
         }
       });
-      // Trigger renegotiation offer
+      // Trigger renegotiation
       try {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -758,9 +763,73 @@ async function connectVoiceChat() {
     
     socket.emit('voice_ready', { roomId });
   } catch (err) {
-    console.error("Error al activar micrófono:", err);
-    logMsg("⚠️ Error de permisos: No se pudo acceder al micrófono.", "system");
+    console.warn("Cámara no disponible, intentando solo micrófono:", err);
+    try {
+      // Fallback: request only microphone
+      voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      logMsg("🎙️ Micrófono activado. Te has unido al canal de voz.", "system");
+      setupLocalVideo(); // Displays a placeholder/avatar in the video box instead of raw feed
+      
+      const buttons = [btnLobbyVoice, btnGameVoice];
+      buttons.forEach(btn => {
+        if (btn) {
+          btn.innerText = '🎙️ Voz Conectada';
+          btn.style.background = '#4caf50';
+          btn.style.color = 'white';
+          btn.disabled = true;
+        }
+      });
+      
+      for (const peerId in peerConnections) {
+        const pc = peerConnections[peerId];
+        voiceStream.getTracks().forEach(track => {
+          const senders = pc.getSenders();
+          const alreadyAdded = senders.some(s => s.track === track);
+          if (!alreadyAdded) {
+            pc.addTrack(track, voiceStream);
+          }
+        });
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          socket.emit('webrtc_signal', { to: peerId, signal: { type: 'offer', sdp: offer.sdp } });
+        } catch (e) {
+          console.error("Error al renegociar tracks:", e);
+        }
+      }
+      
+      socket.emit('voice_ready', { roomId });
+    } catch (err2) {
+      console.error("Error al activar micrófono:", err2);
+      logMsg("⚠️ Error de permisos: No se pudo acceder al micrófono ni a la cámara.", "system");
+    }
   }
+}
+
+function setupLocalVideo() {
+  const container = document.getElementById('video-container');
+  if (!container) return;
+  
+  const existing = document.getElementById('local-video-wrapper');
+  if (existing) existing.remove();
+  
+  const wrapper = document.createElement('div');
+  wrapper.id = 'local-video-wrapper';
+  wrapper.className = 'video-wrapper local-video';
+  
+  const video = document.createElement('video');
+  video.autoplay = true;
+  video.muted = true; // Mute self to prevent echo feedback!
+  video.setAttribute('playsinline', 'true');
+  video.srcObject = voiceStream;
+  
+  const label = document.createElement('div');
+  label.className = 'video-label';
+  label.innerText = `${myName} (Tú)`;
+  
+  wrapper.appendChild(video);
+  wrapper.appendChild(label);
+  container.appendChild(wrapper);
 }
 
 if (btnLobbyVoice) btnLobbyVoice.addEventListener('click', connectVoiceChat);
@@ -769,7 +838,7 @@ if (btnGameVoice) btnGameVoice.addEventListener('click', connectVoiceChat);
 // Create peer connection with another client
 function createPeerConnection(peerId, isInitiator) {
   const pc = new RTCPeerConnection(rtcConfig);
-  pc.iceQueue = []; // Queue to store ICE candidates received before setRemoteDescription
+  pc.iceQueue = [];
 
   if (voiceStream) {
     voiceStream.getTracks().forEach(track => pc.addTrack(track, voiceStream));
@@ -782,40 +851,57 @@ function createPeerConnection(peerId, isInitiator) {
   };
   
   pc.ontrack = (event) => {
-    let audioEl = document.getElementById(`audio-peer-${peerId}`);
-    const isNew = !audioEl;
+    let wrapper = document.getElementById(`video-wrapper-${peerId}`);
+    let videoEl = document.getElementById(`video-peer-${peerId}`);
+    const isNew = !wrapper;
+    
     if (isNew) {
-      audioEl = document.createElement('audio');
-      audioEl.id = `audio-peer-${peerId}`;
-      audioEl.autoplay = true;
-      audioEl.setAttribute('playsinline', 'true');
-      document.body.appendChild(audioEl);
+      const container = document.getElementById('video-container');
+      if (container) {
+        wrapper = document.createElement('div');
+        wrapper.id = `video-wrapper-${peerId}`;
+        wrapper.className = 'video-wrapper';
+        
+        videoEl = document.createElement('video');
+        videoEl.id = `video-peer-${peerId}`;
+        videoEl.autoplay = true;
+        videoEl.setAttribute('playsinline', 'true');
+        
+        const label = document.createElement('div');
+        label.className = 'video-label';
+        label.innerText = getPlayerNameBySocketId(peerId);
+        
+        wrapper.appendChild(videoEl);
+        wrapper.appendChild(label);
+        container.appendChild(wrapper);
+        
+        const peerName = getPlayerNameBySocketId(peerId);
+        logMsg(`🔊 Conexión multimedia establecida con ${peerName}.`, "system");
+      }
+    }
+    
+    if (videoEl) {
+      if (event.streams && event.streams[0]) {
+        videoEl.srcObject = event.streams[0];
+      } else {
+        if (!videoEl.srcObject) {
+          videoEl.srcObject = new MediaStream();
+        }
+        videoEl.srcObject.addTrack(event.track);
+      }
       
-      const peerName = getPlayerNameBySocketId(peerId);
-      logMsg(`🔊 Conexión de audio recibida de ${peerName}.`, "system");
+      // Explicitly trigger playback and handle browser restrictions
+      videoEl.play().catch(err => {
+        console.warn("Autoplay bloqueado por el navegador. Se reproducira al hacer click.", err);
+        const playOnInteraction = () => {
+          videoEl.play().catch(e => console.error("Fallo de reproduccion manual:", e));
+        };
+        document.body.addEventListener('click', playOnInteraction, { once: true });
+      });
     }
-    
-    // Fallback: use event.streams[0] or construct a new stream from the track if empty
-    if (event.streams && event.streams[0]) {
-      audioEl.srcObject = event.streams[0];
-    } else {
-      const remoteStream = new MediaStream();
-      remoteStream.addTrack(event.track);
-      audioEl.srcObject = remoteStream;
-    }
-    
-    // Explicitly play stream and handle autoplay restrictions
-    audioEl.play().catch(err => {
-      console.warn("Autoplay de audio bloqueado por el navegador. Se reproducira al hacer click.", err);
-      const playOnInteraction = () => {
-        audioEl.play().catch(e => console.error("Fallo de reproduccion manual:", e));
-      };
-      document.body.addEventListener('click', playOnInteraction, { once: true });
-    });
   };
   
   if (isInitiator) {
-    // Manually trigger negotiation with a small delay to stabilize connection states
     setTimeout(async () => {
       try {
         const offer = await pc.createOffer();
@@ -833,7 +919,6 @@ function createPeerConnection(peerId, isInitiator) {
 // Signaling socket events
 socket.on('voice_player_ready', async ({ socketId }) => {
   if (socketId === socket.id) return;
-  // If we already have a stream, initiate the connection
   if (voiceStream) {
     const pc = createPeerConnection(socketId, true);
     peerConnections[socketId] = pc;
@@ -889,8 +974,8 @@ socket.on('disconnect_peer_voice', ({ socketId }) => {
     peerConnections[socketId].close();
     delete peerConnections[socketId];
   }
-  const audioEl = document.getElementById(`audio-peer-${socketId}`);
-  if (audioEl) audioEl.remove();
+  const wrapper = document.getElementById(`video-wrapper-${socketId}`);
+  if (wrapper) wrapper.remove();
 });
 
 // JOIN INITIAL ROOM ON LOAD
