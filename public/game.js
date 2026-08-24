@@ -7,6 +7,9 @@ let mySeat = null;
 let myTeam = null;
 let myRole = ''; // 'director' or 'teammate' (for Envido)
 let selectedCard = null;
+let selectedSuit = null;
+let selectedDiscardCard = null;
+let wantsMonte = null; // null, true, or false
 let roomState = null;
 let roomId = '';
 
@@ -54,6 +57,27 @@ const btnTute40 = document.getElementById('btn-tute-40');
 const btnTute20 = document.getElementById('btn-tute-20');
 const btnTuteDeclare = document.getElementById('btn-tute-declarar');
 const btnSwapVira = document.getElementById('btn-swap-vira');
+
+// Tute Subastado Panels
+const auctionPanel = document.getElementById('auction-panel');
+const auctionInfo = document.getElementById('auction-info');
+const auctionHistory = document.getElementById('auction-history');
+const auctionBidInput = document.getElementById('auction-bid-input');
+const btnAuctionBid = document.getElementById('btn-auction-bid');
+const btnAuctionPass = document.getElementById('btn-auction-pass');
+const auctionStatus = document.getElementById('auction-status');
+
+const selectionPanel = document.getElementById('selection-panel');
+const btnConfirmSelection = document.getElementById('btn-confirm-selection');
+const selectionDiscardInfo = document.getElementById('selection-discard-info');
+const btnTakeMonte = document.getElementById('btn-take-monte');
+const btnLeaveMonte = document.getElementById('btn-leave-monte');
+const monteOptions = document.getElementById('monte-options');
+
+const discardPanel = document.getElementById('discard-panel');
+const discardTrumpLabel = document.getElementById('discard-trump-label');
+const discardSelectedInfo = document.getElementById('discard-selected-info');
+const btnConfirmDiscard = document.getElementById('btn-confirm-discard');
 
 // Chat & Log
 const gameLog = document.getElementById('game-log');
@@ -426,16 +450,22 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
       const showScores = (gameState.status === 'round_results' || gameState.status === 'game_end');
       const scoreDisplay = showScores ? `${roundScore} pts` : '❓ pts';
       
-      // Draw red dots/crosses for defeat points (porotos)
-      let defeatsStr = '⚪⚪⚪';
-      if (matchDeafeats === 1) defeatsStr = '🔴⚪⚪';
-      if (matchDeafeats === 2) defeatsStr = '🔴🔴⚪';
-      if (matchDeafeats >= 3) defeatsStr = '🔴🔴🔴';
+      // Draw red dots/crosses for defeat points (porotos) or points for Tute Subastado
+      let defeatsStr = '';
+      if (maxPlayers === 2) {
+        let dots = '⚪⚪⚪';
+        if (matchDeafeats === 1) dots = '🔴⚪⚪';
+        if (matchDeafeats === 2) dots = '🔴🔴⚪';
+        if (matchDeafeats >= 3) dots = '🔴🔴🔴';
+        defeatsStr = `Derrotas: ${dots}`;
+      } else {
+        defeatsStr = `Puntos: ${matchDeafeats}/300`;
+      }
 
       scoreItem.innerHTML = `
         <span class="tute-score-name">${p.name}</span>
         <span class="tute-score-pts">${scoreDisplay}</span>
-        <span style="font-size: 0.65rem;">${defeatsStr}</span>
+        <span style="font-size: 0.65rem; color: #ffb74d;">${defeatsStr}</span>
       `;
       tuteScoresList.appendChild(scoreItem);
     });
@@ -458,6 +488,111 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
 
   // 4. Center Cards (Deck & Vira)
   deckCountLabel.innerText = gameState.deckCount || 0;
+
+  const centerCards = document.querySelector('.center-cards');
+
+  if (gameState.status === 'auction') {
+    if (centerCards) centerCards.style.display = 'none';
+    auctionPanel.style.display = 'flex';
+    selectionPanel.style.display = 'none';
+
+    // Populate auction details
+    const minBid = Math.max(60, (gameState.auctionHighestBid || 0) + 5);
+    auctionBidInput.min = minBid;
+    if (parseInt(auctionBidInput.value) < minBid) {
+      auctionBidInput.value = minBid;
+    }
+
+    auctionInfo.innerText = gameState.auctionHighestBid > 0 
+      ? `Puja máxima: ${gameState.auctionHighestBid} pts por ${players.find(p=>p && p.seat === gameState.auctionHighestBidder)?.name || "Nadie"}`
+      : `Sin apuestas todavía (Mínimo: 60)`;
+
+    auctionHistory.innerHTML = (gameState.auctionBidHistory || []).map(h => {
+      const pName = players.find(p => p && p.seat === h.seat)?.name || `Asiento ${h.seat+1}`;
+      return h.action === 'pass' 
+        ? `<div>❌ ${pName} pasa.</div>` 
+        : `<div>🙋‍♂️ ${pName} puja ${h.value} pts.</div>`;
+    }).join('');
+
+    const isMyBidTurn = (gameState.auctionCurrentTurn === mySeat && mySeat !== null);
+    btnAuctionBid.disabled = !isMyBidTurn;
+    btnAuctionPass.disabled = !isMyBidTurn;
+    auctionBidInput.disabled = !isMyBidTurn;
+
+    if (isMyBidTurn) {
+      auctionStatus.innerText = "★ ¡TU TURNO DE PUJAR! ★";
+      auctionStatus.style.color = "#ffb74d";
+    } else {
+      const turnPlayerName = players.find(p => p && p.seat === gameState.auctionCurrentTurn)?.name || `Asiento ${gameState.auctionCurrentTurn + 1}`;
+      auctionStatus.innerText = `Turno de: ${turnPlayerName}...`;
+      auctionStatus.style.color = "#aaa";
+    }
+  } else if (gameState.status === 'selection') {
+    if (centerCards) centerCards.style.display = 'none';
+    auctionPanel.style.display = 'none';
+    selectionPanel.style.display = 'flex';
+    discardPanel.style.display = 'none';
+
+    const isSubastador = (gameState.auctionHighestBidder === mySeat && mySeat !== null);
+    if (isSubastador) {
+      selectionPanel.querySelector('h5').innerText = "Elección de Triunfo";
+      selectionPanel.querySelector('p').style.display = 'block';
+      selectionPanel.querySelector('.suit-selector').style.display = 'flex';
+      selectionDiscardInfo.style.display = 'block';
+      btnConfirmSelection.style.display = 'block';
+      monteOptions.style.display = 'flex';
+
+      if (wantsMonte === true) {
+        btnTakeMonte.classList.add('active');
+        btnLeaveMonte.classList.remove('active');
+        selectionDiscardInfo.innerText = "Decisión: Coger Monte (descartarás tras confirmar)";
+      } else if (wantsMonte === false) {
+        btnTakeMonte.classList.remove('active');
+        btnLeaveMonte.classList.add('active');
+        selectionDiscardInfo.innerText = "Decisión: Dejar Monte (sin descarte)";
+      } else {
+        btnTakeMonte.classList.remove('active');
+        btnLeaveMonte.classList.remove('active');
+        selectionDiscardInfo.innerText = "Decisión: Elegir coger o dejar monte";
+      }
+      
+      updateConfirmSelectionState();
+    } else {
+      const subastadorName = players.find(p => p && p.seat === gameState.auctionHighestBidder)?.name || "El subastador";
+      selectionPanel.querySelector('h5').innerText = `${subastadorName} elige triunfo...`;
+      selectionPanel.querySelector('p').style.display = 'none';
+      selectionPanel.querySelector('.suit-selector').style.display = 'none';
+      selectionDiscardInfo.style.display = 'none';
+      btnConfirmSelection.style.display = 'none';
+      monteOptions.style.display = 'none';
+    }
+  } else if (gameState.status === 'discard') {
+    if (centerCards) centerCards.style.display = 'none';
+    auctionPanel.style.display = 'none';
+    selectionPanel.style.display = 'none';
+    discardPanel.style.display = 'flex';
+
+    const isSubastador = (gameState.auctionHighestBidder === mySeat && mySeat !== null);
+    if (isSubastador) {
+      discardPanel.querySelector('h5').innerText = "Descarte del Tute";
+      discardTrumpLabel.innerText = gameState.trumpSuit.toUpperCase();
+      discardSelectedInfo.innerText = selectedDiscardCard
+        ? `Descarte: ${getCardNameSpanish(selectedDiscardCard)}`
+        : "Descarte: Ninguno seleccionado";
+      
+      btnConfirmDiscard.style.display = 'block';
+      btnConfirmDiscard.disabled = !selectedDiscardCard;
+    } else {
+      const subastadorName = players.find(p => p && p.seat === gameState.auctionHighestBidder)?.name || "El subastador";
+      discardPanel.querySelector('h5').innerText = `${subastadorName} realiza el descarte...`;
+      btnConfirmDiscard.style.display = 'none';
+    }
+  } else {
+    if (centerCards) centerCards.style.display = 'flex';
+    auctionPanel.style.display = 'none';
+    selectionPanel.style.display = 'none';
+    discardPanel.style.display = 'none';
+  }
   
   if (gameState.viraCard) {
     viraCardSlot.innerHTML = window.createCardSVG(gameState.viraCard.suit, gameState.viraCard.number);
@@ -655,7 +790,9 @@ function renderPlayerHand(gameState) {
     cardWrapper.style.width = '120px';
     cardWrapper.style.height = '180px';
     
-    const isSelected = (selectedCard && selectedCard.suit === card.suit && selectedCard.number === card.number);
+    const isSelected = (gameState.status === 'discard')
+      ? (selectedDiscardCard && selectedDiscardCard.suit === card.suit && selectedDiscardCard.number === card.number)
+      : (selectedCard && selectedCard.suit === card.suit && selectedCard.number === card.number);
     
     cardWrapper.innerHTML = window.createCardSVG(card.suit, card.number, { selected: isSelected });
     
@@ -663,6 +800,15 @@ function renderPlayerHand(gameState) {
     
     // Select Card Click
     svgEl.addEventListener('click', () => {
+      if (gameState.status === 'discard' && gameState.auctionHighestBidder === mySeat) {
+        selectedDiscardCard = card;
+        renderPlayerHand(gameState);
+        discardSelectedInfo.innerText = `Descarte: ${getCardNameSpanish(card)}`;
+        btnConfirmDiscard.disabled = false;
+        alertFlash(`🃏 Descarte seleccionado: ${getCardNameSpanish(card)}`);
+        return;
+      }
+
       if (gameState.status !== 'playing') return;
       selectedCard = card;
       renderPlayerHand(gameState); // Redraw hand to show selection border
@@ -699,6 +845,78 @@ btnSwapVira.addEventListener('click', () => {
     socket.emit('swap_vira', { roomId: roomId });
   }
 });
+
+// TUTE SUBASTADO EVENT LISTENERS
+btnAuctionBid.addEventListener('click', () => {
+  const bidVal = parseInt(auctionBidInput.value);
+  if (roomState && bidVal) {
+    socket.emit('tute_bid', { roomId, value: bidVal });
+  }
+});
+
+btnAuctionPass.addEventListener('click', () => {
+  if (roomState) {
+    socket.emit('tute_pass', { roomId });
+  }
+});
+
+document.querySelectorAll('.suit-selector .btn-suit').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.suit-selector .btn-suit').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedSuit = btn.getAttribute('data-suit');
+    updateConfirmSelectionState();
+  });
+});
+
+btnTakeMonte.addEventListener('click', () => {
+  wantsMonte = true;
+  btnTakeMonte.classList.add('active');
+  btnLeaveMonte.classList.remove('active');
+  selectionDiscardInfo.innerText = "Decisión: Coger Monte (descartarás tras confirmar)";
+  updateConfirmSelectionState();
+});
+
+btnLeaveMonte.addEventListener('click', () => {
+  wantsMonte = false;
+  btnTakeMonte.classList.remove('active');
+  btnLeaveMonte.classList.add('active');
+  selectionDiscardInfo.innerText = "Decisión: Dejar Monte (sin descarte)";
+  updateConfirmSelectionState();
+});
+
+btnConfirmSelection.addEventListener('click', () => {
+  if (roomState && selectedSuit && wantsMonte !== null) {
+    socket.emit('select_trump_discard', {
+      roomId,
+      suit: selectedSuit,
+      wantsMonte: wantsMonte
+    });
+    selectedSuit = null;
+    selectedDiscardCard = null;
+    document.querySelectorAll('.suit-selector .btn-suit').forEach(b => b.classList.remove('active'));
+    updateConfirmSelectionState();
+  }
+});
+
+btnConfirmDiscard.addEventListener('click', () => {
+  if (roomState && selectedDiscardCard) {
+    socket.emit('confirm_discard', {
+      roomId,
+      card: selectedDiscardCard
+    });
+    selectedDiscardCard = null;
+    btnConfirmDiscard.disabled = true;
+  }
+});
+
+function updateConfirmSelectionState() {
+  if (selectedSuit && wantsMonte !== null) {
+    btnConfirmSelection.disabled = false;
+  } else {
+    btnConfirmSelection.disabled = true;
+  }
+}
 
 // SIGN SEND TRIGGERS (Envido)
 document.querySelectorAll('.btn-sign').forEach(button => {

@@ -281,10 +281,15 @@ function startNewRound(room) {
   let deck = createDeck();
   deck = shuffle(deck);
 
-  // Vira (Trump Card)
-  // Drawn first, suit determines trump.
-  gs.viraCard = deck.pop();
-  gs.trumpSuit = gs.viraCard.suit;
+  if (room.gameType === 'envido' || (room.gameType === 'tute' && room.maxPlayers === 2)) {
+    // Vira (Trump Card)
+    // Drawn first, suit determines trump.
+    gs.viraCard = deck.pop();
+    gs.trumpSuit = gs.viraCard.suit;
+  } else {
+    gs.viraCard = null;
+    gs.trumpSuit = null;
+  }
 
   if (room.gameType === 'envido') {
     gs.envidoRoundScore = { teamA: 0, teamB: 0 };
@@ -295,18 +300,42 @@ function startNewRound(room) {
   } else if (room.gameType === 'tute') {
     gs.tuteRoundScores = {};
     gs.tuteCantos = {};
-    const cardsToDeal = room.maxPlayers === 2 ? 3 : 13;
-    room.players.forEach(p => {
-      gs.tuteRoundScores[p.seat] = 0;
-      gs.tuteCantos[p.seat] = [];
+    
+    if (room.maxPlayers === 2) {
+      room.players.forEach(p => {
+        gs.tuteRoundScores[p.seat] = 0;
+        gs.tuteCantos[p.seat] = [];
+        
+        gs.hands[p.socketId] = [];
+        for (let i = 0; i < 3; i++) {
+          gs.hands[p.socketId].push(deck.pop());
+        }
+      });
+      // Store deck for 2-player Tute drawing
+      gs.deck = deck;
+    } else if (room.maxPlayers === 3) {
+      room.players.forEach(p => {
+        gs.tuteRoundScores[p.seat] = 0;
+        gs.tuteCantos[p.seat] = [];
+        
+        gs.hands[p.socketId] = [];
+        for (let i = 0; i < 13; i++) {
+          gs.hands[p.socketId].push(deck.pop());
+        }
+      });
+      // Remaining 1 card goes to monte
+      gs.monteCard = deck.pop();
+      gs.deck = []; // empty deck
       
-      gs.hands[p.socketId] = [];
-      for (let i = 0; i < cardsToDeal; i++) {
-        gs.hands[p.socketId].push(deck.pop());
-      }
-    });
-    // Store deck for 2-player Tute drawing
-    gs.deck = deck;
+      // Initialize subasta state
+      gs.status = 'auction';
+      gs.auctionHighestBid = 0;
+      gs.auctionHighestBidder = null;
+      gs.auctionCurrentTurn = (gs.dealerSeat + 1) % 3;
+      gs.auctionPassed = [false, false, false];
+      gs.auctionBidHistory = [];
+      gs.discardedCard = null;
+    }
   }
 
   // Set turn to player next to dealer
@@ -315,7 +344,11 @@ function startNewRound(room) {
   gs.leadPlayerSeat = gs.currentTurn;
   
   // Set deck count
-  gs.deckCount = deck.length;
+  if (room.gameType === 'tute' && room.maxPlayers === 3) {
+    gs.deckCount = 1; // The monte card count
+  } else {
+    gs.deckCount = deck.length;
+  }
 }
 
 // Clean up player state
@@ -524,7 +557,11 @@ io.on('connection', (socket) => {
     });
 
     io.to(roomId).emit('log_message', { text: `¡La partida ha comenzado! Distribuyendo cartas...`, type: 'system' });
-    io.to(roomId).emit('log_message', { text: `La vira es el ${room.gameState.viraCard.number} de ${room.gameState.viraCard.suit.toUpperCase()}`, type: 'system' });
+    if (room.gameState.viraCard) {
+      io.to(roomId).emit('log_message', { text: `La vira es el ${room.gameState.viraCard.number} de ${room.gameState.viraCard.suit.toUpperCase()}`, type: 'system' });
+    } else if (room.maxPlayers === 3 && room.gameType === 'tute') {
+      io.to(roomId).emit('log_message', { text: `¡Comienza la subasta para el Tute! Mínimo 60 puntos.`, type: 'system' });
+    }
   });
 
   // PLAY CARD
@@ -681,6 +718,154 @@ io.on('connection', (socket) => {
     });
   });
 
+  // TUTE BID (Tute Subastado)
+  socket.on('tute_bid', ({ roomId, value }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameType !== 'tute' || room.maxPlayers !== 3) return;
+    const gs = room.gameState;
+    if (gs.status !== 'auction') return;
+
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player || gs.auctionCurrentTurn !== player.seat) return;
+    if (gs.auctionPassed[player.seat]) return;
+
+    const minBid = Math.max(60, gs.auctionHighestBid + 5);
+    if (value < minBid || value % 5 !== 0) {
+      socket.emit('log_message', { text: `⚠️ La puja debe ser de al menos ${minBid} y ser múltiplo de 5.`, type: 'system' });
+      return;
+    }
+
+    // Bid accepted!
+    gs.auctionHighestBid = value;
+    gs.auctionHighestBidder = player.seat;
+    gs.auctionBidHistory.push({ seat: player.seat, action: 'bid', value: value });
+
+    io.to(roomId).emit('log_message', {
+      text: `🙋‍♂️ ${player.name} puja ${value} puntos.`,
+      type: 'system'
+    });
+
+    // Move to next player
+    moveToNextAuctionTurn(room);
+  });
+
+  // TUTE PASS (Tute Subastado)
+  socket.on('tute_pass', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameType !== 'tute' || room.maxPlayers !== 3) return;
+    const gs = room.gameState;
+    if (gs.status !== 'auction') return;
+
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player || gs.auctionCurrentTurn !== player.seat) return;
+    if (gs.auctionPassed[player.seat]) return;
+
+    // Pass accepted!
+    gs.auctionPassed[player.seat] = true;
+    gs.auctionBidHistory.push({ seat: player.seat, action: 'pass' });
+
+    io.to(roomId).emit('log_message', {
+      text: `❌ ${player.name} pasa.`,
+      type: 'system'
+    });
+
+    // Move to next player
+    moveToNextAuctionTurn(room);
+  });
+
+  // SELECT TRUMP & MONTE DECISION (Tute Subastado)
+  socket.on('select_trump_discard', ({ roomId, suit, wantsMonte }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameType !== 'tute' || room.maxPlayers !== 3) return;
+    const gs = room.gameState;
+    if (gs.status !== 'selection') return;
+
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player || gs.auctionHighestBidder !== player.seat) return;
+
+    if (!['oros', 'copas', 'espadas', 'bastos'].includes(suit)) {
+      socket.emit('log_message', { text: `⚠️ Palo de triunfo no válido.`, type: 'system' });
+      return;
+    }
+
+    gs.trumpSuit = suit;
+
+    if (wantsMonte) {
+      // Transition to discard phase: player must discard 1 of their 13 original cards
+      gs.status = 'discard';
+      io.to(roomId).emit('log_message', {
+        text: `📢 ${player.name} elige como triunfo el palo de ${suit.toUpperCase()} y decide coger el monte. Ahora debe realizar su descarte.`,
+        type: 'system'
+      });
+    } else {
+      // Transition directly to playing: player keeps their 13 original cards, monte is left face down
+      gs.discardedCard = null;
+      gs.status = 'playing';
+      gs.currentTurn = gs.auctionHighestBidder;
+      gs.leadPlayerSeat = gs.currentTurn;
+      io.to(roomId).emit('log_message', {
+        text: `📢 ${player.name} elige como triunfo el palo de ${suit.toUpperCase()} y deja el monte boca abajo en la mesa. ¡Comienza el juego!`,
+        type: 'system'
+      });
+    }
+
+    // Broadcast updated state to all clients
+    io.to(roomId).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: gs
+    });
+  });
+
+  // CONFIRM DISCARD (Tute Subastado)
+  socket.on('confirm_discard', ({ roomId, card }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameType !== 'tute' || room.maxPlayers !== 3) return;
+    const gs = room.gameState;
+    if (gs.status !== 'discard') return;
+
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player || gs.auctionHighestBidder !== player.seat) return;
+
+    const hand = gs.hands[socket.id];
+    const cardIndex = hand.findIndex(c => c.suit === card.suit && c.number === card.number);
+    if (cardIndex === -1) {
+      socket.emit('log_message', { text: `⚠️ Error: la carta seleccionada para descartar no está en tu mano.`, type: 'system' });
+      return;
+    }
+
+    // Do the swap:
+    // 1. Remove the discarded card from hand
+    gs.discardedCard = hand[cardIndex];
+    hand.splice(cardIndex, 1); // hand goes to 12 cards
+
+    // 2. Add the monte card to the hand (revealing it to the subastador)
+    hand.push(gs.monteCard);
+    
+    // 3. Clear monte Card from table
+    gs.monteCard = null;
+    gs.deckCount = 0;
+
+    // 4. Start playing phase
+    gs.status = 'playing';
+    gs.currentTurn = gs.auctionHighestBidder;
+    gs.leadPlayerSeat = gs.currentTurn;
+
+    io.to(roomId).emit('log_message', {
+      text: `📢 ${player.name} ha realizado su descarte boca abajo y recibe la carta del monte. ¡Comienza el juego!`,
+      type: 'system'
+    });
+
+    // Broadcast updated state to all clients
+    io.to(roomId).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: gs
+    });
+  });
+
   // PRIVATE SIGN ROUTING (Envido only)
   socket.on('send_sign', ({ roomId, signName }) => {
     const room = rooms[roomId];
@@ -735,6 +920,12 @@ io.on('connection', (socket) => {
 
     const gs = room.gameState;
     
+    // In 3-player Tute Subastado, only the subastador can declare cantos
+    if (room.maxPlayers === 3 && gs.auctionHighestBidder !== player.seat) {
+      socket.emit('log_message', { text: `En el Tute Subastado solo el subastador tiene permitido cantar.`, type: 'system' });
+      return;
+    }
+
     // Validate that they have won at least one trick
     const playerWonTrick = gs.tricks.some(t => t.winnerSeat === player.seat);
     if (!playerWonTrick) {
@@ -769,6 +960,12 @@ io.on('connection', (socket) => {
     if (!player) return;
 
     const gs = room.gameState;
+    
+    // In 3-player Tute Subastado, only the subastador can declare Tute
+    if (room.maxPlayers === 3 && gs.auctionHighestBidder !== player.seat) {
+      socket.emit('log_message', { text: `En el Tute Subastado solo el subastador puede declarar Tute.`, type: 'system' });
+      return;
+    }
     
     io.to(roomId).emit('log_message', { 
       text: `🏆 ¡${player.name} DECLARA TUTE DE ${type.toUpperCase()} Y GANA LA PARTIDA INSTANTÁNEAMENTE!`, 
@@ -818,14 +1015,14 @@ io.on('connection', (socket) => {
       });
     });
 
-    // List scores
-    const playerScores = room.players.map(p => ({
-      seat: p.seat,
-      name: p.name,
-      score: gs.tuteRoundScores[p.seat]
-    }));
-
     if (room.maxPlayers === 2) {
+      // List scores
+      const playerScores = room.players.map(p => ({
+        seat: p.seat,
+        name: p.name,
+        score: gs.tuteRoundScores[p.seat]
+      }));
+
       io.to(room.id).emit('log_message', { 
         text: `📊 Puntuaciones de esta ronda: ${playerScores[0].name}: ${playerScores[0].score} | ${playerScores[1].name}: ${playerScores[1].score}`, 
         type: 'system' 
@@ -847,52 +1044,95 @@ io.on('connection', (socket) => {
       gs.tuteMatchPoints[loserSeat]++;
       io.to(room.id).emit('log_message', { text: `💀 ${loserName} tiene menos puntos y pierde esta ronda (Suma 1 punto de derrota).`, type: 'system' });
 
-    } else {
-      playerScores.sort((a, b) => a.score - b.score);
-      const lowest = playerScores[0];
-      const middle = playerScores[1];
-      const highest = playerScores[2];
-
-      io.to(room.id).emit('log_message', { 
-        text: `📊 Puntuaciones de esta ronda: ${lowest.name}: ${lowest.score} | ${middle.name}: ${middle.score} | ${highest.name}: ${highest.score}`, 
-        type: 'system' 
+      // Check match end (3 defeat points)
+      let gameEnded = false;
+      room.players.forEach(p => {
+        if (gs.tuteMatchPoints[p.seat] >= 3) {
+          gameEnded = true;
+        }
       });
 
-      let loserSeat = middle.seat;
-      let loserName = middle.name;
-
-      if (middle.score === lowest.score && middle.score === highest.score) {
-        io.to(room.id).emit('log_message', { text: `¡Empate triple de puntos! Todos los jugadores se salvan.`, type: 'system' });
-      } else if (middle.score === lowest.score) {
-        gs.tuteMatchPoints[middle.seat]++;
-        gs.tuteMatchPoints[lowest.seat]++;
-        io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${lowest.name}!`, type: 'system' });
-      } else if (middle.score === highest.score) {
-        gs.tuteMatchPoints[middle.seat]++;
-        gs.tuteMatchPoints[highest.seat]++;
-        io.to(room.id).emit('log_message', { text: `Empate en el segundo lugar: ¡Pierden ${middle.name} y ${highest.name}!`, type: 'system' });
+      if (gameEnded) {
+        gs.status = 'game_end';
+        io.to(room.id).emit('log_message', { 
+          text: `🏆 ¡Fin de la partida! Alguien alcanzó 3 puntos de derrota.`, 
+          type: 'system' 
+        });
       } else {
-        gs.tuteMatchPoints[loserSeat]++;
-        io.to(room.id).emit('log_message', { text: `💀 ${loserName} es el del medio y pierde esta ronda (Suma 1 punto de derrota).`, type: 'system' });
+        gs.status = 'round_results';
       }
-    }
 
-    // Check match end (3 defeat points)
-    let gameEnded = false;
-    room.players.forEach(p => {
-      if (gs.tuteMatchPoints[p.seat] >= 3) {
-        gameEnded = true;
+    } else if (room.maxPlayers === 3) {
+      // Tute Subastado (3 Players)
+      
+      // 1. Add discarded card points to the subastador's score
+      const subastadorSeat = gs.auctionHighestBidder;
+      const subastadorPlayer = room.players.find(p => p.seat === subastadorSeat);
+      const subastadorName = subastadorPlayer ? subastadorPlayer.name : `Subastador`;
+
+      if (gs.discardedCard) {
+        const discardPoints = getCardPointsTute(gs.discardedCard);
+        gs.tuteRoundScores[subastadorSeat] += discardPoints;
+        io.to(room.id).emit('log_message', {
+          text: `📦 Se añaden ${discardPoints} pts del descarte al subastador ${subastadorName}.`,
+          type: 'system'
+        });
       }
-    });
 
-    if (gameEnded) {
-      gs.status = 'game_end';
+      // Log points of all players in this round
+      const subastadorScore = gs.tuteRoundScores[subastadorSeat];
+      const opponents = room.players.filter(p => p.seat !== subastadorSeat);
+      
       io.to(room.id).emit('log_message', { 
-        text: `🏆 ¡Fin de la partida! Alguien alcanzó 3 puntos de derrota.`, 
+        text: `📊 Puntuaciones de esta ronda: Subastador (${subastadorName}): ${subastadorScore} pts | Oponente 1 (${opponents[0].name}): ${gs.tuteRoundScores[opponents[0].seat]} pts | Oponente 2 (${opponents[1].name}): ${gs.tuteRoundScores[opponents[1].seat]} pts`, 
         type: 'system' 
       });
-    } else {
-      gs.status = 'round_results';
+
+      // 2. Evaluate bid success
+      const bidValue = gs.auctionHighestBid;
+      const success = (subastadorScore >= bidValue);
+
+      if (success) {
+        gs.tuteMatchPoints[subastadorSeat] += bidValue;
+        io.to(room.id).emit('log_message', {
+          text: `🎉 ¡${subastadorName} cumple su subasta de ${bidValue} (hizo ${subastadorScore}) y suma +${bidValue} puntos!`,
+          type: 'system'
+        });
+      } else {
+        gs.tuteMatchPoints[subastadorSeat] -= bidValue;
+        opponents.forEach(opp => {
+          gs.tuteMatchPoints[opp.seat] += bidValue;
+        });
+        io.to(room.id).emit('log_message', {
+          text: `💀 ¡${subastadorName} NO cumple su subasta de ${bidValue} (hizo ${subastadorScore})! Pierde -${bidValue} puntos. Los oponentes suman +${bidValue} puntos.`,
+          type: 'system'
+        });
+      }
+
+      // Check match end (300 points)
+      let gameEnded = false;
+      let winnerName = '';
+      let highestMatchPoints = -9999;
+      
+      room.players.forEach(p => {
+        if (gs.tuteMatchPoints[p.seat] >= 300) {
+          gameEnded = true;
+        }
+        if (gs.tuteMatchPoints[p.seat] > highestMatchPoints) {
+          highestMatchPoints = gs.tuteMatchPoints[p.seat];
+          winnerName = p.name;
+        }
+      });
+
+      if (gameEnded) {
+        gs.status = 'game_end';
+        io.to(room.id).emit('log_message', { 
+          text: `🏆 ¡Fin de la partida! El ganador es ${winnerName} con ${highestMatchPoints} puntos.`, 
+          type: 'system' 
+        });
+      } else {
+        gs.status = 'round_results';
+      }
     }
 
     io.to(room.id).emit('room_state', {
@@ -986,6 +1226,64 @@ io.on('connection', (socket) => {
     console.log(`Socket disconnected: ${socket.id}`);
   });
 });
+
+// Helper to advance the auction turn in Tute Subastado
+function moveToNextAuctionTurn(room) {
+  const gs = room.gameState;
+  const passedCount = gs.auctionPassed.filter(p => p).length;
+
+  if (passedCount === 3) {
+    // Case 1: All 3 players passed without any bid!
+    io.to(room.id).emit('log_message', {
+      text: `🔄 Todos los jugadores han pasado. Se vuelven a repartir las cartas...`,
+      type: 'system'
+    });
+    startNewRound(room);
+    
+    io.to(room.id).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: gs
+    });
+    return;
+  }
+
+  if (passedCount === 2 && gs.auctionHighestBid > 0) {
+    // Case 2: 2 players passed and there is a high bid!
+    const winnerPlayer = room.players.find(p => p && p.seat === gs.auctionHighestBidder);
+    io.to(room.id).emit('log_message', {
+      text: `🏆 ¡Subasta finalizada! ${winnerPlayer.name} gana la subasta con una apuesta de ${gs.auctionHighestBid} puntos.`,
+      type: 'system'
+    });
+
+    // Transition to selection phase!
+    gs.status = 'selection';
+    // Keep monteCard tapada on the table, deckCount remains 1 until wantsMonte is true
+
+    io.to(room.id).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: gs
+    });
+    return;
+  }
+
+  // Find next active player turn
+  let nextTurn = (gs.auctionCurrentTurn + 1) % 3;
+  while (gs.auctionPassed[nextTurn]) {
+    nextTurn = (nextTurn + 1) % 3;
+  }
+  gs.auctionCurrentTurn = nextTurn;
+
+  io.to(room.id).emit('room_state', {
+    gameType: room.gameType,
+    maxPlayers: room.maxPlayers,
+    players: room.players,
+    gameState: gs
+  });
+}
 
 // Evaluate who wins the trick
 function evaluateTrick(room) {
