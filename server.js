@@ -129,8 +129,8 @@ function getCardRankEnvido(card, trumpSuit, ledSuit) {
 }
 
 function getCardRankTute(card, trumpSuit, ledSuit) {
-  // Raw ranks: As(1)>3>12>11>10>7>6>5>4>2
-  const rawRanks = { 1: 10, 3: 9, 12: 8, 11: 7, 10: 6, 7: 5, 6: 4, 5: 3, 4: 2, 2: 1 };
+  // Raw ranks: As(1)>2>12>11>10>7>6>5>4>3
+  const rawRanks = { 1: 10, 2: 9, 12: 8, 11: 7, 10: 6, 7: 5, 6: 4, 5: 3, 4: 2, 3: 1 };
   const rank = rawRanks[card.number] || 0;
 
   if (card.suit === trumpSuit) {
@@ -146,7 +146,7 @@ function getCardRankTute(card, trumpSuit, ledSuit) {
 function getCardPointsTute(card) {
   switch (card.number) {
     case 1: return 11;
-    case 3: return 10;
+    case 2: return 10; // 2 is worth 10 points (second highest)
     case 12: return 4;
     case 11: return 3;
     case 10: return 2;

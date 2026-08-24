@@ -10,6 +10,7 @@ let selectedCard = null;
 let selectedSuit = null;
 let selectedDiscardCard = null;
 let wantsMonte = null; // null, true, or false
+let isHandSortedBySuit = false;
 let roomState = null;
 let roomId = '';
 
@@ -78,6 +79,7 @@ const discardPanel = document.getElementById('discard-panel');
 const discardTrumpLabel = document.getElementById('discard-trump-label');
 const discardSelectedInfo = document.getElementById('discard-selected-info');
 const btnConfirmDiscard = document.getElementById('btn-confirm-discard');
+const btnSortSuit = document.getElementById('btn-sort-suit');
 
 // Chat & Log
 const gameLog = document.getElementById('game-log');
@@ -771,7 +773,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
 function renderPlayerHand(gameState) {
   playerHandContainer.innerHTML = '';
   
-  const hand = gameState.hands[socket.id] || [];
+  let hand = [...(gameState.hands[socket.id] || [])];
   
   if (mySeat !== null) {
     playerRoleIndicator.innerText = `Tu Asiento: ${mySeat + 1}`;
@@ -785,10 +787,23 @@ function renderPlayerHand(gameState) {
     return;
   }
 
-  hand.forEach(card => {
+  // Sort hand if requested
+  if (isHandSortedBySuit) {
+    const suitOrder = { oros: 1, copas: 2, espadas: 3, bastos: 4 };
+    const rankOrder = { 1: 10, 2: 9, 12: 8, 11: 7, 10: 6, 7: 5, 6: 4, 5: 3, 4: 2, 3: 1 };
+    
+    hand.sort((a, b) => {
+      if (a.suit !== b.suit) {
+        return suitOrder[a.suit] - suitOrder[b.suit];
+      }
+      return rankOrder[b.number] - rankOrder[a.number]; // Descending rank order
+    });
+  }
+
+  hand.forEach((card, index) => {
     const cardWrapper = document.createElement('div');
-    cardWrapper.style.width = '120px';
-    cardWrapper.style.height = '180px';
+    cardWrapper.className = 'card-wrapper';
+    cardWrapper.style.zIndex = index + 1;
     
     const isSelected = (gameState.status === 'discard')
       ? (selectedDiscardCard && selectedDiscardCard.suit === card.suit && selectedDiscardCard.number === card.number)
@@ -797,6 +812,9 @@ function renderPlayerHand(gameState) {
     cardWrapper.innerHTML = window.createCardSVG(card.suit, card.number, { selected: isSelected });
     
     const svgEl = cardWrapper.firstElementChild;
+    if (svgEl) {
+      svgEl.classList.add('card-svg');
+    }
     
     // Select Card Click
     svgEl.addEventListener('click', () => {
@@ -917,6 +935,21 @@ function updateConfirmSelectionState() {
     btnConfirmSelection.disabled = true;
   }
 }
+
+// SORT HAND TRIGGER
+btnSortSuit.addEventListener('click', () => {
+  isHandSortedBySuit = !isHandSortedBySuit;
+  if (isHandSortedBySuit) {
+    btnSortSuit.style.background = 'var(--accent-color)';
+    btnSortSuit.style.color = 'black';
+  } else {
+    btnSortSuit.style.background = 'transparent';
+    btnSortSuit.style.color = 'var(--accent-color)';
+  }
+  if (roomState) {
+    renderPlayerHand(roomState.gameState);
+  }
+});
 
 // SIGN SEND TRIGGERS (Envido)
 document.querySelectorAll('.btn-sign').forEach(button => {

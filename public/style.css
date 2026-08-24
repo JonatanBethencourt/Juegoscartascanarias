@@ -835,23 +835,38 @@ body {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  gap: -15px; /* Overlap cards slightly */
+  overflow: visible;
+  width: 100%;
+  max-width: 100%;
+  padding-bottom: 5px;
 }
 
-/* Card representation inside hand */
-.hand-cards .card-svg {
+/* Card wrapper layout for clean overlapping fan */
+.hand-cards .card-wrapper {
+  flex: 0 1 120px;
+  min-width: 40px;
+  height: 180px;
+  position: relative;
+  overflow: visible;
+  transition: z-index 0.2s;
+}
+
+.hand-cards .card-wrapper .card-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 120px;
   height: 180px;
   cursor: pointer;
   box-shadow: 0 4px 8px rgba(0,0,0,0.4);
   border-radius: 10px;
   transition: transform 0.2s, box-shadow 0.2s;
-  margin: 0 4px;
 }
 
-.hand-cards .card-svg:hover {
-  transform: translateY(-10px) scale(1.05);
-  z-index: 10;
+.hand-cards .card-wrapper .card-svg:hover {
+  transform: translateY(-25px) scale(1.08);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+  z-index: 100 !important;
 }
 
 .play-actions {
