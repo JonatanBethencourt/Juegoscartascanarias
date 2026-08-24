@@ -93,6 +93,28 @@ function shuffle(deck) {
   return deck;
 }
 
+// Light shuffle: simulates stacking and light shuffling to keep runs together
+function lightShuffle(deck) {
+  // 1. Perform 3 random cuts
+  for (let i = 0; i < 3; i++) {
+    const cutIndex = Math.floor(Math.random() * (deck.length - 10)) + 5; // Cut between index 5 and 35
+    const part1 = deck.slice(0, cutIndex);
+    const part2 = deck.slice(cutIndex);
+    deck = [...part2, ...part1];
+  }
+  
+  // 2. Perform light adjacent swaps (25% chance) to mix slightly
+  for (let i = 0; i < deck.length - 1; i++) {
+    if (Math.random() < 0.25) {
+      const temp = deck[i];
+      deck[i] = deck[i + 1];
+      deck[i + 1] = temp;
+    }
+  }
+  
+  return deck;
+}
+
 // Card Rank comparison helpers
 function getCardRankEnvido(card, trumpSuit, ledSuit) {
   if (card.suit === trumpSuit) {
@@ -284,8 +306,42 @@ function startNewRound(room) {
   gs.leadPlayerSeat = gs.firstHandSeat;
 
   // Create and shuffle deck
-  let deck = createDeck();
-  deck = shuffle(deck);
+  let deck;
+  let isLightShuffle = false;
+
+  if (room.gameType === 'tute' && room.maxPlayers === 3 && gs.tricks && gs.tricks.length > 0) {
+    const gathered = [];
+    gs.tricks.forEach(trick => {
+      if (trick.playedCards) {
+        trick.playedCards.forEach(p => {
+          if (p.card) gathered.push(p.card);
+        });
+      }
+    });
+    if (gs.discardedCard) {
+      gathered.push(gs.discardedCard);
+    }
+    if (gs.monteCard) {
+      gathered.push(gs.monteCard);
+    }
+
+    if (gathered.length === 40) {
+      deck = lightShuffle(gathered);
+      isLightShuffle = true;
+    }
+  }
+
+  if (!deck) {
+    deck = createDeck();
+    deck = shuffle(deck);
+  }
+
+  if (isLightShuffle) {
+    io.to(room.id).emit('log_message', {
+      text: `🔄 Las cartas de la ronda anterior se han recogido y mezclado ligeramente`,
+      type: 'system'
+    });
+  }
 
   if (room.gameType === 'envido' || (room.gameType === 'tute' && room.maxPlayers === 2)) {
     // Vira (Trump Card)
