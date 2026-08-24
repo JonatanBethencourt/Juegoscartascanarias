@@ -277,6 +277,12 @@ function startNewRound(room) {
   gs.playedCards = [];
   gs.tricks = [];
   
+  // Set turn to player next to dealer (rotates every round)
+  gs.dealerSeat = (gs.dealerSeat + 1) % room.maxPlayers;
+  gs.firstHandSeat = (gs.dealerSeat + 1) % room.maxPlayers;
+  gs.currentTurn = gs.firstHandSeat;
+  gs.leadPlayerSeat = gs.firstHandSeat;
+
   // Create and shuffle deck
   let deck = createDeck();
   deck = shuffle(deck);
@@ -331,18 +337,13 @@ function startNewRound(room) {
       gs.status = 'auction';
       gs.auctionHighestBid = 0;
       gs.auctionHighestBidder = null;
-      gs.auctionCurrentTurn = (gs.dealerSeat + 1) % 3;
+      gs.auctionCurrentTurn = gs.firstHandSeat;
       gs.auctionPassed = [false, false, false];
       gs.auctionBidHistory = [];
       gs.discardedCard = null;
     }
   }
 
-  // Set turn to player next to dealer
-  gs.dealerSeat = (gs.dealerSeat + 1) % room.maxPlayers;
-  gs.currentTurn = (gs.dealerSeat + 1) % room.maxPlayers;
-  gs.leadPlayerSeat = gs.currentTurn;
-  
   // Set deck count
   if (room.gameType === 'tute' && room.maxPlayers === 3) {
     gs.deckCount = 1; // The monte card count
@@ -545,6 +546,9 @@ io.on('connection', (socket) => {
       room.players.forEach(p => {
         room.gameState.tuteMatchPoints[p.seat] = 0;
       });
+      if (room.maxPlayers === 3) {
+        room.gameState.dealerSeat = 1;
+      }
     }
 
     startNewRound(room);
@@ -801,7 +805,7 @@ io.on('connection', (socket) => {
       // Transition directly to playing: player keeps their 13 original cards, monte is left face down
       gs.discardedCard = null;
       gs.status = 'playing';
-      gs.currentTurn = gs.auctionHighestBidder;
+      gs.currentTurn = gs.firstHandSeat;
       gs.leadPlayerSeat = gs.currentTurn;
       io.to(roomId).emit('log_message', {
         text: `📢 ${player.name} elige como triunfo el palo de ${suit.toUpperCase()} y deja el monte boca abajo en la mesa. ¡Comienza el juego!`,
@@ -849,7 +853,7 @@ io.on('connection', (socket) => {
 
     // 4. Start playing phase
     gs.status = 'playing';
-    gs.currentTurn = gs.auctionHighestBidder;
+    gs.currentTurn = gs.firstHandSeat;
     gs.leadPlayerSeat = gs.currentTurn;
 
     io.to(roomId).emit('log_message', {
@@ -1065,26 +1069,29 @@ io.on('connection', (socket) => {
     } else if (room.maxPlayers === 3) {
       // Tute Subastado (3 Players)
       
-      // 1. Add discarded card points to the subastador's score
       const subastadorSeat = gs.auctionHighestBidder;
-      const subastadorPlayer = room.players.find(p => p.seat === subastadorSeat);
+      const subastadorPlayer = room.players.find(p => p && p.seat === subastadorSeat);
       const subastadorName = subastadorPlayer ? subastadorPlayer.name : `Subastador`;
 
+      // 1. Calculate discard points and opponents combined score
+      let discardPoints = 0;
       if (gs.discardedCard) {
-        const discardPoints = getCardPointsTute(gs.discardedCard);
-        gs.tuteRoundScores[subastadorSeat] += discardPoints;
-        io.to(room.id).emit('log_message', {
-          text: `📦 Se añaden ${discardPoints} pts del descarte al subastador ${subastadorName}.`,
-          type: 'system'
-        });
+        discardPoints = getCardPointsTute(gs.discardedCard);
       }
 
-      // Log points of all players in this round
       const subastadorScore = gs.tuteRoundScores[subastadorSeat];
-      const opponents = room.players.filter(p => p.seat !== subastadorSeat);
+      const opponents = room.players.filter(p => p && p.seat !== subastadorSeat);
       
+      // Combine opponents' scores and add the discard card points to their team score
+      const opponentsBaseScore = gs.tuteRoundScores[opponents[0].seat] + gs.tuteRoundScores[opponents[1].seat];
+      const opponentsCombinedScore = opponentsBaseScore + discardPoints;
+
+      // Update both opponents' tuteRoundScores to show their combined team score
+      gs.tuteRoundScores[opponents[0].seat] = opponentsCombinedScore;
+      gs.tuteRoundScores[opponents[1].seat] = opponentsCombinedScore;
+
       io.to(room.id).emit('log_message', { 
-        text: `📊 Puntuaciones de esta ronda: Subastador (${subastadorName}): ${subastadorScore} pts | Oponente 1 (${opponents[0].name}): ${gs.tuteRoundScores[opponents[0].seat]} pts | Oponente 2 (${opponents[1].name}): ${gs.tuteRoundScores[opponents[1].seat]} pts`, 
+        text: `📊 Puntuaciones de esta ronda: Subastador (${subastadorName}): ${subastadorScore} pts (Pujó: ${gs.auctionHighestBid}) | Equipo Oponente: ${opponentsCombinedScore} pts (incluye ${discardPoints} pts del descarte)`, 
         type: 'system' 
       });
 
