@@ -30,7 +30,7 @@
       color: '#e23d3d',
       // Traditional Copas: Detailed goblet, red interior bowl, lid with green and red accents
       getSymbol: (scale = 1) => `
-        <g transform="scale(${scale})">
+        <g transform="scale(${scale}) translate(50, 50) scale(1.25) translate(-50, -50)">
           <!-- Goblet Base -->
           <path d="M 28 85 L 72 85 L 65 74 L 35 74 Z" fill="#ffca28" stroke="#5d4037" stroke-width="1.5" />
           <path d="M 33 74 C 33 74, 50 78, 67 74 L 67 77 C 67 77, 50 81, 33 77 Z" fill="#d32f2f" />
@@ -84,7 +84,7 @@
       color: '#4caf50',
       // Traditional Basto: Brown wooden club, wood grain lines, cut knots, green leaves
       getSymbol: (scale = 1) => `
-        <g transform="scale(${scale})">
+        <g transform="scale(${scale}) translate(50, 50) scale(1.28) translate(-50, -50)">
           <!-- Main Wooden Cudgel Trunk -->
           <path d="M 45 88 C 45 88, 36 38, 41 20 C 43 12, 57 12, 59 20 C 64 38, 55 88, 55 88 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="2" />
           <path d="M 45 88 C 45 88, 39 38, 44 20 C 45 15, 50 15, 52 20 C 55 38, 55 88, 55 88 Z" fill="#a1887f" opacity="0.65" /> <!-- Inner wood light shading -->
@@ -254,7 +254,7 @@
             <path d="M 4 -34 Q 18 -46, 12 -33 Z" fill="#e23d3d" /> <!-- Red feather -->
             
             <!-- Suit Symbol in hand -->
-            <g transform="translate(10, 0) scale(0.35)">
+            <g transform="translate(14, -8) scale(0.55)">
               ${symbol}
             </g>
           </g>
@@ -279,6 +279,14 @@
             <!-- Mane -->
             <path d="M 5 -18 Q 18 -12, 12 5 M 8 -8 Q 18 -2, 14 12" fill="none" stroke="#4e342e" stroke-width="2" />
             
+            <!-- Horse Eye & Bridle -->
+            <circle cx="23" cy="-18" r="1.5" fill="black" />
+            <circle cx="23.5" cy="-18.5" r="0.5" fill="white" />
+            <path d="M 28 -20 L 22 -16 M 22 -16 L -5 -8" fill="none" stroke="#ffca28" stroke-width="1.2" />
+            
+            <!-- Saddle Blanket -->
+            <path d="M -18 10 Q 0 14, 12 10 L 8 26 Q -4 28, -14 26 Z" fill="#ffd54f" stroke="#4e342e" stroke-width="1.2" />
+            
             <!-- Front Legs (Raised) -->
             <path d="M 22 -3 Q 36 -6, 32 6 L 27 2" fill="none" stroke="#8d6e63" stroke-width="6.5" stroke-linecap="round" />
             <path d="M 18 -8 Q 32 -10, 28 2 L 23 -2" fill="none" stroke="#8d6e63" stroke-width="6.5" stroke-linecap="round" />
@@ -298,7 +306,7 @@
             <path d="M -10 -8 Q -16 6 -8 24" fill="none" stroke="#37474f" stroke-width="5" stroke-linecap="round" />
             
             <!-- Suit Symbol held by rider -->
-            <g transform="translate(18, -48) scale(0.35)">
+            <g transform="translate(22, -60) scale(0.55)">
               ${symbol}
             </g>
           </g>
@@ -344,7 +352,7 @@
             <circle cx="-14" cy="-5" r="3" fill="#e23d3d" />
             
             <!-- Suit Symbol held by King -->
-            <g transform="translate(10, 8) scale(0.38)">
+            <g transform="translate(14, 0) scale(0.6)">
               ${symbol}
             </g>
           </g>
@@ -475,6 +483,12 @@
         // Court Card (Sota, Caballo, Rey) with custom graphics
         const court = COURT_GRAPHICS[number];
         if (court) {
+          // Central background medallion to provide figure contrast
+          content += `
+            <!-- Central Medallion for Court Figures -->
+            <circle cx="100" cy="142" r="54" fill="#fafafa" stroke="#e0e0e0" stroke-width="1.2" />
+            <circle cx="100" cy="142" r="49" fill="none" stroke="#cfd8dc" stroke-width="0.8" stroke-dasharray="2,2" />
+          `;
           content += court.getGraphic(color, suit);
           
           // Label at the bottom center
