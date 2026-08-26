@@ -16,9 +16,8 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3001;
 
 // Metered TURN Server API Configuration
-// Set METERED_SECRET_KEY as an environment variable in Render (or paste it below)
-const METERED_SECRET_KEY = process.env.METERED_SECRET_KEY || '6f315de921e7b40756c12e513d9e85fd8e7c';
-const METERED_API_URL = 'https://jonymaike.metered.live/api/v1/turn/credentials';
+const METERED_SECRET_KEY = process.env.METERED_SECRET_KEY || 'QJJl2tewZkHYKjroweVqkXmywaJHcsS-A3pVrlXIdFF8YmQi';
+const METERED_API_URL = process.env.METERED_API_URL || 'https://jonymaike.metered.live/api/v1/turn/credentials';
 
 let cachedIceServers = null;
 let lastFetchTime = 0;
