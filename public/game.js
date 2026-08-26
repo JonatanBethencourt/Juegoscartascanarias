@@ -1,10 +1,6 @@
 // Game Client for Canary Card Games (Envido & Tute)
 const socket = io();
 
-// Toggle Jitsi Meet Video Chat Integration (100% Free / Unlimited) vs Custom WebRTC (Metered TURN)
-const USE_JITSI = true;
-let jitsiAPI = null;
-
 // Client State
 let myName = '';
 let mySeat = null;
@@ -1080,82 +1076,7 @@ function getPlayerNameBySocketId(socketId) {
 }
 
 async function connectVoiceChat() {
-  if (voiceStream || jitsiAPI) return;
-
-  if (USE_JITSI) {
-    try {
-      logMsg("🎙️/📷 Conectando al chat de video integrado (Jitsi)...", "system");
-      
-      const container = document.getElementById('video-container');
-      if (container) {
-        // Hide the original custom WebRTC controls
-        const controls = document.getElementById('video-controls');
-        if (controls) controls.style.display = 'none';
-
-        // Create container for Jitsi iframe
-        const jitsiDiv = document.createElement('div');
-        jitsiDiv.id = 'jitsi-iframe-container';
-        jitsiDiv.style.width = '280px';
-        jitsiDiv.style.height = '210px';
-        jitsiDiv.style.borderRadius = '8px';
-        jitsiDiv.style.overflow = 'hidden';
-        jitsiDiv.style.border = '2px solid var(--accent-color)';
-        jitsiDiv.style.pointerEvents = 'auto';
-        jitsiDiv.style.background = '#111';
-        jitsiDiv.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)';
-        
-        container.appendChild(jitsiDiv);
-
-        const domain = 'meet.jit.si';
-        const options = {
-          roomName: 'TuteEnvidoRoom_' + roomId,
-          width: '100%',
-          height: '100%',
-          parentNode: jitsiDiv,
-          userInfo: {
-            displayName: myName
-          },
-          configOverwrite: {
-            startWithAudioMuted: false,
-            startWithVideoMuted: false,
-            prejoinPageEnabled: false,
-            disableDeepLinking: true,
-            toolbarButtons: ['microphone', 'camera', 'settings']
-          },
-          interfaceConfigOverwrite: {
-            SHOW_JITSI_WATERMARK: false,
-            JITSI_WATERMARK_LINK: ''
-          }
-        };
-
-        if (window.JitsiMeetExternalAPI) {
-          jitsiAPI = new window.JitsiMeetExternalAPI(domain, options);
-          logMsg("🎙️/📷 Chat de video de Jitsi conectado. ¡Gratis e ilimitado!", "system");
-        } else {
-          logMsg("❌ Error: No se pudo cargar la API externa de Jitsi.", "system");
-          jitsiDiv.remove();
-          return;
-        }
-      }
-
-      // Update button visual status
-      const buttons = [btnLobbyVoice, btnGameVoice];
-      buttons.forEach(btn => {
-        if (btn) {
-          btn.innerText = '🎙️/📷 Conectado (Jitsi)';
-          btn.style.background = '#4caf50';
-          btn.style.color = 'white';
-          btn.disabled = true;
-        }
-      });
-      return;
-    } catch (err) {
-      console.error("Jitsi connection error:", err);
-      logMsg("❌ Error al iniciar el canal de Jitsi.", "system");
-      return;
-    }
-  }
-
+  if (voiceStream) return;
   try {
     // Request both camera and microphone
     voiceStream = await navigator.mediaDevices.getUserMedia({ 
