@@ -1095,17 +1095,73 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10;
-  background: rgba(0, 0, 0, 0.85);
-  border: 2px solid var(--accent-color);
-  border-radius: 12px;
-  padding: 15px;
-  width: 280px;
+  
+  /* 3D Glassmorphism theme with colors */
+  background: linear-gradient(135deg, #252830 0%, #15161a 100%);
+  border: 3px solid #ffca28;
+  border-radius: 16px;
+  padding: 18px;
+  width: 290px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.6);
+  
+  /* 3D shadow and bottom rim */
+  box-shadow: 0 8px 0 #b8860b, 0 15px 30px rgba(0,0,0,0.7);
   color: white;
+  
+  /* Smooth transition for active pulsing */
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 3D highlight when action is expected (Pulsing yellow/gold glow) */
+.pulse-action {
+  border-color: #ffffff !important;
+  box-shadow: 0 8px 0 #ffd54f, 0 15px 35px rgba(255, 213, 79, 0.5), inset 0 0 15px rgba(255, 213, 79, 0.3) !important;
+  transform: translate(-50%, -53%) scale(1.03) !important; /* Lifts panel slightly upward in 3D space */
+}
+
+/* Tactile 3D buttons inside action cards */
+.auction-panel .btn, .selection-panel .btn {
+  border-radius: 8px;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+  transition: all 0.1s ease;
+}
+.auction-panel .btn:active:not(:disabled), .selection-panel .btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+}
+
+/* Suit buttons styling inside grid */
+.btn-suit {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 2px solid #555 !important;
+  color: #ccc !important;
+  transition: all 0.2s ease !important;
+}
+.btn-suit:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: #888 !important;
+  color: #fff !important;
+}
+.btn-suit.active {
+  background: rgba(255, 202, 40, 0.15) !important;
+  border-color: #ffca28 !important;
+  color: #ffca28 !important;
+  box-shadow: 0 3px 8px rgba(255, 202, 40, 0.3), inset 0 0 8px rgba(255, 202, 40, 0.2) !important;
+  transform: scale(1.05);
+}
+
+/* Blinking action state text */
+@keyframes text-blink {
+  0% { opacity: 0.6; text-shadow: 0 0 3px rgba(255, 213, 79, 0.4); }
+  50% { opacity: 1; color: #ffeb3b; text-shadow: 0 0 12px rgba(255, 213, 79, 0.8); }
+  100% { opacity: 0.6; text-shadow: 0 0 3px rgba(255, 213, 79, 0.4); }
+}
+.text-pulsing {
+  animation: text-blink 1.2s infinite !important;
+  font-weight: bold;
 }
 
 .auction-panel h5, .selection-panel h5 {

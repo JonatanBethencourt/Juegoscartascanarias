@@ -544,6 +544,25 @@
     `;
   }
 
+  // Helper: Get standalone SVG markup for a suit symbol
+  function getSuitSVG(suit, size = 30) {
+    const suitInfo = SUITS[suit.toLowerCase()];
+    if (!suitInfo) return '';
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="${size}" height="${size}" style="display: inline-block; vertical-align: middle;">
+        <defs>
+          <radialGradient id="goldGradientSuit" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+            <stop offset="0%" stop-color="#fffde7" />
+            <stop offset="60%" stop-color="#ffd54f" />
+            <stop offset="100%" stop-color="#ffb300" />
+          </radialGradient>
+        </defs>
+        ${suitInfo.getSymbol(1).replace(/url\(#goldGradient\)/g, 'url(#goldGradientSuit)')}
+      </svg>
+    `;
+  }
+
   // Attach to window global scope
   window.createCardSVG = createCardSVG;
+  window.getSuitSVG = getSuitSVG;
 })();

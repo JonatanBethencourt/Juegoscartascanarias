@@ -524,10 +524,14 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     if (isMyBidTurn) {
       auctionStatus.innerText = "★ ¡TU TURNO DE PUJAR! ★";
       auctionStatus.style.color = "#ffb74d";
+      auctionPanel.classList.add('pulse-action');
+      auctionStatus.classList.add('text-pulsing');
     } else {
       const turnPlayerName = players.find(p => p && p.seat === gameState.auctionCurrentTurn)?.name || `Asiento ${gameState.auctionCurrentTurn + 1}`;
       auctionStatus.innerText = `Turno de: ${turnPlayerName}...`;
       auctionStatus.style.color = "#aaa";
+      auctionPanel.classList.remove('pulse-action');
+      auctionStatus.classList.remove('text-pulsing');
     }
   } else if (gameState.status === 'selection') {
     if (centerCards) centerCards.style.display = 'none';
@@ -537,9 +541,11 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
 
     const isSubastador = (gameState.auctionHighestBidder === mySeat && mySeat !== null);
     if (isSubastador) {
+      selectionPanel.classList.add('pulse-action');
+      selectionDiscardInfo.classList.add('text-pulsing');
       selectionPanel.querySelector('h5').innerText = "Elección de Triunfo";
       selectionPanel.querySelector('p').style.display = 'block';
-      selectionPanel.querySelector('.suit-selector').style.display = 'flex';
+      selectionPanel.querySelector('.suit-selector').style.display = 'grid';
       selectionDiscardInfo.style.display = 'block';
       btnConfirmSelection.style.display = 'block';
       monteOptions.style.display = 'flex';
@@ -560,6 +566,8 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
       
       updateConfirmSelectionState();
     } else {
+      selectionPanel.classList.remove('pulse-action');
+      selectionDiscardInfo.classList.remove('text-pulsing');
       const subastadorName = players.find(p => p && p.seat === gameState.auctionHighestBidder)?.name || "El subastador";
       selectionPanel.querySelector('h5').innerText = `${subastadorName} elige triunfo...`;
       selectionPanel.querySelector('p').style.display = 'none';
@@ -576,6 +584,8 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
 
     const isSubastador = (gameState.auctionHighestBidder === mySeat && mySeat !== null);
     if (isSubastador) {
+      discardPanel.classList.add('pulse-action');
+      discardSelectedInfo.classList.add('text-pulsing');
       discardPanel.querySelector('h5').innerText = "Descarte del Tute";
       discardTrumpLabel.innerText = gameState.trumpSuit.toUpperCase();
       discardSelectedInfo.innerText = selectedDiscardCard
@@ -585,6 +595,8 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
       btnConfirmDiscard.style.display = 'block';
       btnConfirmDiscard.disabled = !selectedDiscardCard;
     } else {
+      discardPanel.classList.remove('pulse-action');
+      discardSelectedInfo.classList.remove('text-pulsing');
       const subastadorName = players.find(p => p && p.seat === gameState.auctionHighestBidder)?.name || "El subastador";
       discardPanel.querySelector('h5').innerText = `${subastadorName} realiza el descarte...`;
       btnConfirmDiscard.style.display = 'none';
@@ -594,6 +606,12 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     auctionPanel.style.display = 'none';
     selectionPanel.style.display = 'none';
     discardPanel.style.display = 'none';
+    auctionPanel.classList.remove('pulse-action');
+    selectionPanel.classList.remove('pulse-action');
+    discardPanel.classList.remove('pulse-action');
+    auctionStatus.classList.remove('text-pulsing');
+    selectionDiscardInfo.classList.remove('text-pulsing');
+    discardSelectedInfo.classList.remove('text-pulsing');
   }
   
   if (gameState.viraCard) {
@@ -879,10 +897,19 @@ btnAuctionPass.addEventListener('click', () => {
 });
 
 document.querySelectorAll('.suit-selector .btn-suit').forEach(btn => {
+  const suit = btn.getAttribute('data-suit');
+  if (window.getSuitSVG) {
+    btn.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0;">
+        ${window.getSuitSVG(suit, 32)}
+        <span style="font-size: 0.8rem; font-weight: bold; text-transform: uppercase;">${suit}</span>
+      </div>
+    `;
+  }
   btn.addEventListener('click', () => {
     document.querySelectorAll('.suit-selector .btn-suit').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    selectedSuit = btn.getAttribute('data-suit');
+    selectedSuit = suit;
     updateConfirmSelectionState();
   });
 });
