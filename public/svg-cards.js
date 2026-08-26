@@ -261,52 +261,42 @@
         `;
       }
     },
-    11: { // Caballo (Knight riding a rearing horse)
+    11: { // Caballo (Majestic Horse Head profile)
       name: 'CABALLO',
       getGraphic: (color, suit) => {
         const symbol = SUITS[suit.toLowerCase()].getSymbol(1);
         return `
-          <g transform="translate(100, 140) scale(0.95)">
-            <!-- Horse Tail -->
-            <path d="M -30 22 C -45 35, -35 55, -28 65" fill="none" stroke="#4e342e" stroke-width="5" stroke-linecap="round" />
+          <g transform="translate(100, 142) scale(1.15)">
+            <!-- Horse Neck & Head (Facing Left) -->
+            <path d="M 22 45 L 22 -15 C 22 -15, 16 -25, 10 -22 C 4 -19, -20 -8, -30 2 C -32 4, -31 8, -27 10 C -22 12, -18 8, -12 8 C -5 20, -10 35, -12 45 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="2" />
             
-            <!-- Rearing Horse Body -->
-            <path d="M -26 45 C -26 35, -20 28, -22 15 C -24 -2, -18 -18, 5 -18 C 18 -18, 28 -10, 24 15 C 22 28, 26 40, 22 45 L 14 45 L 16 28 L -14 28 L -16 45 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="2" />
-            
-            <!-- Horse Head and Neck -->
-            <path d="M 5 -18 C 12 -28, 25 -32, 28 -20 C 30 -10, 22 -6, 16 -12 C 12 -16, 5 -18, 5 -18 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="1.8" />
-            <path d="M 24 -24 Q 28 -34, 20 -28" fill="none" stroke="#4e342e" stroke-width="2.5" /> <!-- Ears -->
-            <!-- Mane -->
-            <path d="M 5 -18 Q 18 -12, 12 5 M 8 -8 Q 18 -2, 14 12" fill="none" stroke="#4e342e" stroke-width="2" />
-            
-            <!-- Horse Eye & Bridle -->
-            <circle cx="23" cy="-18" r="1.5" fill="black" />
-            <circle cx="23.5" cy="-18.5" r="0.5" fill="white" />
-            <path d="M 28 -20 L 22 -16 M 22 -16 L -5 -8" fill="none" stroke="#ffca28" stroke-width="1.2" />
-            
-            <!-- Saddle Blanket -->
-            <path d="M -18 10 Q 0 14, 12 10 L 8 26 Q -4 28, -14 26 Z" fill="#ffd54f" stroke="#4e342e" stroke-width="1.2" />
-            
-            <!-- Front Legs (Raised) -->
-            <path d="M 22 -3 Q 36 -6, 32 6 L 27 2" fill="none" stroke="#8d6e63" stroke-width="6.5" stroke-linecap="round" />
-            <path d="M 18 -8 Q 32 -10, 28 2 L 23 -2" fill="none" stroke="#8d6e63" stroke-width="6.5" stroke-linecap="round" />
-            
-            <!-- Hind Legs -->
-            <path d="M -22 35 L -26 58 L -34 58 L -30 63 L -18 63 L -16 35 Z" fill="#705247" stroke="#4e342e" stroke-width="1" />
-            <path d="M 20 35 L 16 58 L 8 58 L 12 63 L 26 63 L 22 35 Z" fill="#705247" stroke="#4e342e" stroke-width="1" />
-            
-            <!-- Rider (Knight) -->
-            <!-- Torso -->
-            <path d="M -6 -8 L 8 -8 L 5 -25 L -9 -25 Z" fill="${color}" stroke="#212121" stroke-width="1" />
-            <!-- Knight Helmet -->
-            <circle cx="-1" cy="-30" r="6" fill="#cfd8dc" stroke="#455a64" stroke-width="1" />
-            <path d="M -7 -30 L 5 -30 L 3 -26 L -5 -26 Z" fill="#ffd54f" /> <!-- Visor -->
-            <path d="M -1 -36 Q 8 -46, 2 -35 Z" fill="#ff9800" /> <!-- Plume -->
-            <!-- Legs of Rider -->
-            <path d="M -10 -8 Q -16 6 -8 24" fill="none" stroke="#37474f" stroke-width="5" stroke-linecap="round" />
-            
-            <!-- Suit Symbol held by rider -->
-            <g transform="translate(22, -60) scale(0.55)">
+            <!-- Ears -->
+            <path d="M 12 -23 L 17 -40 Q 14 -35, 7 -25 Z" fill="#8d6e63" stroke="#4e342e" stroke-width="1.5" />
+            <path d="M 4 -22 L 8 -37 Q 5 -32, -1 -24 Z" fill="#705247" stroke="#4e342e" stroke-width="1.2" />
+
+            <!-- Mane (Hair on back of neck) -->
+            <path d="M 22 -15 C 28 -5, 32 15, 30 35 C 30 40, 26 42, 22 42 C 21 20, 18 0, 10 -22 Z" fill="#4e342e" />
+            <path d="M 10 -22 Q -2 -18, 5 -12" fill="none" stroke="#4e342e" stroke-width="2.5" /> <!-- Forelock -->
+
+            <!-- Nostril -->
+            <ellipse cx="-26" cy="4" rx="2.5" ry="1.5" fill="#4e342e" />
+
+            <!-- Mouth line -->
+            <path d="M -28 7 Q -22 9 -18 7" fill="none" stroke="#4e342e" stroke-width="1.5" />
+
+            <!-- Eye -->
+            <ellipse cx="-6" cy="-12" rx="4.5" ry="3" fill="white" stroke="#4e342e" stroke-width="1.2" />
+            <circle cx="-5" cy="-12" r="2.2" fill="#4e342e" />
+            <circle cx="-6" cy="-13" r="0.8" fill="white" />
+
+            <!-- Elegant Bridle and Reins in Gold -->
+            <path d="M -23 -1 L -15 -9" stroke="#ffd54f" stroke-width="2" fill="none" /> <!-- Noseband -->
+            <path d="M -15 -9 L 7 -19" stroke="#ffd54f" stroke-width="2" fill="none" /> <!-- Cheekpiece -->
+            <circle cx="-15" cy="-9" r="2" fill="#cfd8dc" stroke="#455a64" stroke-width="0.8" /> <!-- Bit ring -->
+            <path d="M -15 -9 C -12 15, 10 32, 22 18" stroke="#ffd54f" stroke-width="1.5" fill="none" /> <!-- Reins -->
+
+            <!-- Suit Symbol - Placed to the right of the head at scale 0.65 -->
+            <g transform="translate(18, -25) scale(0.65)">
               ${symbol}
             </g>
           </g>
@@ -331,11 +321,14 @@
             <circle cx="0" cy="20" r="2" fill="#4caf50" />
             <circle cx="0" cy="35" r="2" fill="#e23d3d" />
             
-            <!-- Crown (Golden with spikes) -->
-            <path d="M -14 -27 L 14 -27 L 11 -18 L 0 -30 L -11 -18 Z" fill="#ffd54f" stroke="#b8860b" stroke-width="1.5" />
-            <circle cx="-14" cy="-27" r="1.5" fill="#e23d3d" />
-            <circle cx="0" cy="-30" r="2" fill="#ffeb3b" />
-            <circle cx="14" cy="-27" r="1.5" fill="#e23d3d" />
+            <!-- Crown (Golden with spikes and jewels) -->
+            <path d="M -10 -22 L 10 -22 L 8 -18 L -8 -18 Z" fill="#ffd54f" stroke="#b8860b" stroke-width="1" /> <!-- Crown Band -->
+            <path d="M -8 -22 L -12 -33 L -3 -25 L 0 -38 L 3 -25 L 12 -33 L 8 -22 Z" fill="#ffd54f" stroke="#b8860b" stroke-width="1.5" /> <!-- Spikes -->
+            <circle cx="-12" cy="-33" r="2" fill="#e23d3d" stroke="#b8860b" stroke-width="0.5" /> <!-- Left Red Gem -->
+            <circle cx="0" cy="-38" r="2.5" fill="#1976d2" stroke="#b8860b" stroke-width="0.5" /> <!-- Center Blue Gem -->
+            <circle cx="12" cy="-33" r="2" fill="#e23d3d" stroke="#b8860b" stroke-width="0.5" /> <!-- Right Red Gem -->
+            <circle cx="-4" cy="-20" r="1.2" fill="#2e7d32" /> <!-- Green band gem -->
+            <circle cx="4" cy="-20" r="1.2" fill="#e23d3d" /> <!-- Red band gem -->
             
             <!-- Head and Beard -->
             <circle cx="0" cy="-15" r="7" fill="#ffe0b2" />
