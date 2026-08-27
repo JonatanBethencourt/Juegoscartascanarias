@@ -1451,6 +1451,41 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Pass turn (only allowed if 1 hidden card remains)
+  socket.on('playnine_pass', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameState.status !== 'playing_nine') return;
+
+    const gs = room.gameState;
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player || gs.currentTurn !== player.seat) return;
+    if (gs.turnPhase !== 'draw') return;
+
+    const playerHand = gs.hands[socket.id];
+    if (!playerHand) return;
+
+    const hiddenCount = playerHand.filter(c => !c.revealed).length;
+    if (hiddenCount !== 1) {
+      socket.emit('log_message', { text: `⚠️ Solo puedes pasar el turno si te queda exactamente una carta oculta.`, type: 'system' });
+      return;
+    }
+
+    io.to(roomId).emit('log_message', { text: `⛳ ${player.name} decide PASAR su turno.`, type: 'system' });
+
+    // Reset current drawn state variables (just in case)
+    gs.drawnCard = null;
+    gs.drawnFrom = null;
+
+    advancePlayNineTurn(room);
+
+    io.to(roomId).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: room.gameState
+    });
+  });
+
   // Place card (replace existing card)
   socket.on('playnine_place_card', ({ roomId, cardIndex }) => {
     const room = rooms[roomId];

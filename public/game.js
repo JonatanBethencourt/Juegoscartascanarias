@@ -97,6 +97,7 @@ const btnSendChat = document.getElementById('btn-send-chat');
 // Player Hand
 const playerHandContainer = document.getElementById('player-hand');
 const btnPlayCard = document.getElementById('btn-play-card');
+const btnPlayNinePass = document.getElementById('btn-playnine-pass');
 const playerRoleIndicator = document.getElementById('player-role-indicator');
 
 // INITIALIZE ROOM ID FROM URL
@@ -981,7 +982,17 @@ function renderPlayNineHand(gameState) {
   const hand = gameState.hands[socket.id];
   if (!hand || hand.length === 0) {
     playerHandContainer.innerHTML = '<span style="color:#666;">Sin cartas en mano</span>';
+    btnPlayNinePass.style.display = 'none';
     return;
+  }
+
+  // Toggle playnine pass button if player has exactly 1 hidden card left on their turn
+  const isMyTurnToDraw = (gameState.currentTurn === mySeat && gameState.status === 'playing_nine' && gameState.turnPhase === 'draw');
+  const hiddenCount = hand.filter(c => !c.revealed).length;
+  if (isMyTurnToDraw && hiddenCount === 1) {
+    btnPlayNinePass.style.display = 'block';
+  } else {
+    btnPlayNinePass.style.display = 'none';
   }
 
   // Grid styles for 2x4 cards layout
@@ -1139,6 +1150,7 @@ function renderPlayerHand(gameState) {
   playerHandContainer.style.padding = '0px';
   
   btnPlayCard.style.display = 'block';
+  btnPlayNinePass.style.display = 'none';
   const btnSortSuit = document.getElementById('btn-sort-suit');
   if (btnSortSuit) btnSortSuit.style.display = 'block';
 
@@ -1781,6 +1793,12 @@ if (elNewGame) {
     } else {
       socket.emit('reset_game', { roomId });
     }
+  });
+}
+
+if (btnPlayNinePass) {
+  btnPlayNinePass.addEventListener('click', () => {
+    socket.emit('playnine_pass', { roomId });
   });
 }
 
