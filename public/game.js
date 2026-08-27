@@ -11,6 +11,7 @@ let selectedSuit = null;
 let selectedDiscardCard = null;
 let wantsMonte = null; // null, true, or false
 let isHandSortedBySuit = false;
+let activeChoiceCardIndex = null;
 let roomState = null;
 let roomId = '';
 
@@ -421,6 +422,7 @@ function getCardNameSpanish(card) {
 // MAIN ROOM STATE SYNCHRONIZATION
 socket.on('room_state', ({ gameType, maxPlayers, players, gameState }) => {
   roomState = { gameType, maxPlayers, players, gameState };
+  activeChoiceCardIndex = null;
   
   // Find self seat in players array
   const me = players.find(p => p && p.socketId === socket.id);
@@ -1012,6 +1014,77 @@ function renderPlayNineHand(gameState) {
 
     cardWrapper.innerHTML = window.createPlayNineCardSVG(card.value, card.revealed, { selected: isSelected });
 
+    // Interactive actions choice overlay if this card is currently selected for replace/flip decision
+    if (gameState.status === 'playing_nine' && gameState.currentTurn === mySeat && gameState.turnPhase === 'place' && gameState.drawnFrom === 'deck' && index === activeChoiceCardIndex) {
+      const overlay = document.createElement('div');
+      overlay.style.position = 'absolute';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100%';
+      overlay.style.height = '100%';
+      overlay.style.background = 'rgba(0,0,0,0.85)';
+      overlay.style.display = 'flex';
+      overlay.style.flexDirection = 'column';
+      overlay.style.justifyContent = 'center';
+      overlay.style.alignItems = 'center';
+      overlay.style.gap = '5px';
+      overlay.style.zIndex = '10';
+      overlay.style.padding = '4px';
+      overlay.style.boxSizing = 'border-box';
+
+      // Reemplazar button
+      const btnReplace = document.createElement('button');
+      btnReplace.className = 'btn btn-warning';
+      btnReplace.style.width = '95%';
+      btnReplace.style.fontSize = '9px';
+      btnReplace.style.padding = '4px 0';
+      btnReplace.style.lineHeight = '1';
+      btnReplace.style.fontWeight = 'bold';
+      btnReplace.innerText = 'Reemplazar';
+      btnReplace.addEventListener('click', (e) => {
+        e.stopPropagation();
+        socket.emit('playnine_place_card', { roomId, cardIndex: index });
+        activeChoiceCardIndex = null;
+      });
+
+      // Girar button
+      const btnFlip = document.createElement('button');
+      btnFlip.className = 'btn btn-primary';
+      btnFlip.style.width = '95%';
+      btnFlip.style.fontSize = '9px';
+      btnFlip.style.padding = '4px 0';
+      btnFlip.style.lineHeight = '1';
+      btnFlip.style.fontWeight = 'bold';
+      btnFlip.innerText = 'Girar';
+      btnFlip.addEventListener('click', (e) => {
+        e.stopPropagation();
+        socket.emit('playnine_discard_and_reveal', { roomId, cardIndex: index });
+        activeChoiceCardIndex = null;
+      });
+
+      // Cancelar button
+      const btnCancel = document.createElement('button');
+      btnCancel.className = 'btn btn-xs';
+      btnCancel.style.width = '95%';
+      btnCancel.style.fontSize = '8px';
+      btnCancel.style.padding = '2px 0';
+      btnCancel.style.lineHeight = '1';
+      btnCancel.style.background = '#444';
+      btnCancel.style.color = '#ccc';
+      btnCancel.style.border = 'none';
+      btnCancel.innerText = 'Cancelar';
+      btnCancel.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activeChoiceCardIndex = null;
+        renderPlayNineHand(gameState);
+      });
+
+      overlay.appendChild(btnReplace);
+      overlay.appendChild(btnFlip);
+      overlay.appendChild(btnCancel);
+      cardWrapper.appendChild(overlay);
+    }
+
     // Interactive actions
     cardWrapper.addEventListener('click', () => {
       if (gameState.status === 'playing_nine_setup') {
@@ -1046,16 +1119,13 @@ function renderPlayNineHand(gameState) {
 
         // Place drawn card logic
         if (!card.revealed && gameState.drawnFrom === 'deck') {
-          // Choice prompt
-          const useReplacement = confirm(`¿Quieres REEMPLAZAR tu carta oculta con el ${gameState.drawnCard.value}?\n\n(Pulsa 'Aceptar' para REEMPLAZARLA, o 'Cancelar' para DESCARTAR el ${gameState.drawnCard.value} y REVELAR esta carta oculta).`);
-          if (useReplacement) {
-            socket.emit('playnine_place_card', { roomId, cardIndex: index });
-          } else {
-            socket.emit('playnine_discard_and_reveal', { roomId, cardIndex: index });
-          }
+          // Instead of confirm popup, set index to show action buttons overlay
+          activeChoiceCardIndex = index;
+          renderPlayNineHand(gameState);
         } else {
           // Forced replacement (clicked revealed card, or drawn from discard)
           socket.emit('playnine_place_card', { roomId, cardIndex: index });
+          activeChoiceCardIndex = null;
         }
       }
     });
