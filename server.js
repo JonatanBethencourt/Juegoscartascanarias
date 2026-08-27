@@ -452,6 +452,8 @@ function startNewRound(room) {
 
     gs.deck = deck;
     gs.drawnCard = null;
+    gs.drawnFrom = null;
+    gs.previousDrawnFrom = null;
     gs.turnPhase = 'draw';
     gs.lastTurnTriggeredBy = null;
     gs.lastTurnRemaining = null;
@@ -1434,6 +1436,11 @@ io.on('connection', (socket) => {
     if (!player || gs.currentTurn !== player.seat) return;
     if (gs.turnPhase !== 'draw') return;
 
+    if (gs.previousDrawnFrom === 'discard') {
+      socket.emit('log_message', { text: `⚠️ No puedes robar de la pila de descarte si el jugador anterior la usó.`, type: 'system' });
+      return;
+    }
+
     if (gs.discardPile.length === 0) return;
 
     const card = gs.discardPile.pop();
@@ -1836,6 +1843,9 @@ function evaluateRoundEnd(room) {
 // Play Nine Helper: Advance turn
 function advancePlayNineTurn(room) {
   const gs = room.gameState;
+  gs.previousDrawnFrom = gs.drawnFrom;
+  gs.drawnFrom = null;
+  gs.drawnCard = null;
   const activePlayer = room.players[gs.currentTurn];
   const activeHand = gs.hands[activePlayer.socketId];
 

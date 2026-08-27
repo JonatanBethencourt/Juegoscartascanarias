@@ -280,6 +280,10 @@ deckPile.addEventListener('click', () => {
 
 viraCardSlot.addEventListener('click', () => {
   if (roomState && roomState.gameType === 'playnine' && roomState.gameState.status === 'playing_nine' && roomState.gameState.currentTurn === mySeat && roomState.gameState.turnPhase === 'draw') {
+    if (roomState.gameState.previousDrawnFrom === 'discard') {
+      alertFlash("⚠️ No puedes robar del descarte si el jugador anterior ya robó del descarte.");
+      return;
+    }
     socket.emit('playnine_take_discard', { roomId });
   }
 });
@@ -678,16 +682,52 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
   }
   
   if (gameType === 'playnine') {
+    const isMyTurnToDraw = (gameState.currentTurn === mySeat && gameState.status === 'playing_nine' && gameState.turnPhase === 'draw');
+
     // Render deck pile with Play Nine card back
     deckPile.innerHTML = window.createPlayNineCardSVG(null, false) + `<span class="card-count" id="deck-count">${gameState.deckCount || 0}</span>`;
     
+    // Glowing border for deck if drawable
+    if (isMyTurnToDraw) {
+      deckPile.style.cursor = 'pointer';
+      deckPile.style.boxShadow = '0 0 15px #ffd54f';
+      deckPile.style.border = '2px solid #ffd54f';
+    } else {
+      deckPile.style.cursor = 'default';
+      deckPile.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.5)';
+      deckPile.style.border = '2px solid rgba(255,255,255,0.2)';
+    }
+
     // Render discard pile top card in viraCardSlot
     viraLabel.innerText = 'Descarte';
     if (gameState.discardPile && gameState.discardPile.length > 0) {
       const topDiscard = gameState.discardPile[gameState.discardPile.length - 1];
       viraCardSlot.innerHTML = window.createPlayNineCardSVG(topDiscard.value, true);
+      
+      const discardSvg = viraCardSlot.firstElementChild;
+      const canDrawDiscard = isMyTurnToDraw && gameState.previousDrawnFrom !== 'discard';
+
+      if (canDrawDiscard) {
+        viraCardSlot.style.cursor = 'pointer';
+        viraCardSlot.style.boxShadow = '0 0 15px #ffd54f';
+        viraCardSlot.style.border = '2px solid #ffd54f';
+        viraCardSlot.style.opacity = '1.0';
+      } else {
+        viraCardSlot.style.cursor = 'default';
+        viraCardSlot.style.boxShadow = 'none';
+        viraCardSlot.style.border = 'none';
+        // Fade out discard top card if locked for current turn
+        if (isMyTurnToDraw && gameState.previousDrawnFrom === 'discard') {
+          viraCardSlot.style.opacity = '0.4';
+        } else {
+          viraCardSlot.style.opacity = '1.0';
+        }
+      }
     } else {
       viraCardSlot.innerHTML = '';
+      viraCardSlot.style.boxShadow = 'none';
+      viraCardSlot.style.border = 'none';
+      viraCardSlot.style.opacity = '1.0';
     }
     btnSwapVira.style.display = 'none';
 
@@ -706,7 +746,14 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     playNineDrawnCard.innerHTML = '';
     
     // Reset deck-pile representation if it was modified
+    deckPile.style.cursor = 'default';
+    deckPile.style.boxShadow = 'none';
+    deckPile.style.border = 'none';
     deckPile.innerHTML = `<div class="card-back-icon"></div><span class="card-count" id="deck-count">${gameState.deckCount || 0}</span>`;
+    
+    viraCardSlot.style.opacity = '1.0';
+    viraCardSlot.style.boxShadow = 'none';
+    viraCardSlot.style.border = 'none';
 
     if (gameState.viraCard) {
       viraCardSlot.innerHTML = window.createCardSVG(gameState.viraCard.suit, gameState.viraCard.number);
