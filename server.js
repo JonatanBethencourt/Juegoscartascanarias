@@ -654,14 +654,21 @@ io.on('connection', (socket) => {
     // Initialize scores
     if (room.gameType === 'envido') {
       room.gameState.scores = { teamA: 0, teamB: 0 };
-    } else {
+    } else if (room.gameType === 'tute') {
       room.gameState.tuteMatchPoints = {};
       room.players.forEach(p => {
-        room.gameState.tuteMatchPoints[p.seat] = 0;
+        if (p) room.gameState.tuteMatchPoints[p.seat] = 0;
       });
       if (room.maxPlayers === 3) {
         room.gameState.dealerSeat = 1;
       }
+    } else if (room.gameType === 'playnine') {
+      room.gameState.playNineScores = {};
+      room.players.forEach(p => {
+        if (p) room.gameState.playNineScores[p.seat] = [];
+      });
+      room.gameState.currentHole = 1;
+      room.gameState.dealerSeat = 0;
     }
 
     startNewRound(room);
@@ -1300,6 +1307,8 @@ io.on('connection', (socket) => {
       tuteRoundScores: room.players.map(() => 0),
       tuteMatchPoints: room.players.map(() => 0),
       tuteCantos: room.players.map(() => []),
+      playNineScores: {},
+      currentHole: 1,
       deckCount: 0
     };
 

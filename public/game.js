@@ -519,7 +519,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     playNineCurrentHoleLabel.innerText = gameState.currentHole;
     players.forEach(p => {
       if (!p) return;
-      const scoresArray = gameState.playNineScores[p.seat] || [];
+      const scoresArray = (gameState.playNineScores && gameState.playNineScores[p.seat]) || [];
       const totalScore = scoresArray.reduce((a, b) => a + b, 0);
       const scoreItem = document.createElement('div');
       scoreItem.style.display = 'flex';
@@ -538,6 +538,9 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
   if (gameState.status === 'game_end') {
     turnIndicator.innerText = 'Partida Finalizada';
     turnIndicator.style.background = '#d84315';
+  } else if (gameState.status === 'playing_nine_setup') {
+    turnIndicator.innerText = '⛳ Selecciona 2 cartas para empezar';
+    turnIndicator.style.background = '#0288d1';
   } else {
     if (gameState.currentTurn === mySeat) {
       turnIndicator.innerText = '★ ¡TU TURNO! ★';
