@@ -562,7 +562,127 @@
     `;
   }
 
+  // Play Nine (Golf) card SVG generator
+  function createPlayNineCardSVG(value, revealed, options = {}) {
+    const isSelected = options.selected || false;
+    const customClass = options.class || '';
+    let content = '';
+
+    if (!revealed) {
+      // Play Nine Card Back
+      content = `
+        <!-- Card Back -->
+        <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#2e7d32" stroke="#1b5e20" stroke-width="3" />
+        <!-- Green grid/golf pattern -->
+        <rect x="10" y="10" width="180" height="280" rx="10" ry="10" fill="none" stroke="#a5d6a7" stroke-width="1.5" stroke-dasharray="8,6" />
+        <!-- Golf ball and tee in center -->
+        <g transform="translate(100, 150) scale(1.2)">
+          <!-- Tee -->
+          <path d="M -4 15 L 4 15 L 2 30 L -2 30 Z" fill="#cfd8dc" stroke="#90a4ae" stroke-width="1" />
+          <path d="M -8 15 C -8 10, 8 10, 8 15 Z" fill="#b0bec5" stroke="#90a4ae" stroke-width="1" />
+          <!-- Ball -->
+          <circle cx="0" cy="-6" r="18" fill="#ffffff" stroke="#cfd8dc" stroke-width="1" />
+          <!-- Ball dimples -->
+          <circle cx="-8" cy="-12" r="1.5" fill="#cfd8dc" />
+          <circle cx="0" cy="-15" r="1.5" fill="#cfd8dc" />
+          <circle cx="8" cy="-12" r="1.5" fill="#cfd8dc" />
+          <circle cx="-10" cy="-4" r="1.5" fill="#cfd8dc" />
+          <circle cx="-2" cy="-6" r="1.5" fill="#cfd8dc" />
+          <circle cx="6" cy="-4" r="1.5" fill="#cfd8dc" />
+          <circle cx="-6" cy="4" r="1.5" fill="#cfd8dc" />
+          <circle cx="2" cy="2" r="1.5" fill="#cfd8dc" />
+          <circle cx="8" cy="4" r="1.5" fill="#cfd8dc" />
+        </g>
+      `;
+    } else {
+      if (value === -5) {
+        // Hole-in-One (-5)
+        content = `
+          <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#e8f5e9" stroke="#2e7d32" stroke-width="3" />
+          <rect x="10" y="10" width="180" height="280" rx="10" ry="10" fill="none" stroke="#2e7d32" stroke-width="1.5" />
+          <text x="25" y="32" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="#2e7d32" text-anchor="middle">-5</text>
+          <text x="175" y="278" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="#2e7d32" text-anchor="middle" transform="rotate(180 175 272)">-5</text>
+          <g transform="translate(100, 130) scale(1.1)">
+            <ellipse cx="0" cy="40" rx="22" ry="7" fill="#37474f" stroke="#263238" stroke-width="1.5" />
+            <line x1="-3" y1="40" x2="-3" y2="-40" stroke="#78909c" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M -3 -40 L 22 -28 L -3 -16 Z" fill="#d50000" stroke="#b71c1c" stroke-width="1" />
+            <circle cx="10" cy="36" r="6" fill="#ffffff" stroke="#cfd8dc" stroke-width="0.8" />
+          </g>
+          <text x="100" y="225" font-family="'Courier New', monospace" font-weight="bold" font-size="13" fill="#1b5e20" text-anchor="middle">HOLE IN ONE</text>
+          <text x="100" y="265" font-family="'Georgia', serif" font-weight="bold" font-size="34" fill="#d50000" text-anchor="middle">-5</text>
+        `;
+      } else if (value === 0) {
+        // Mulligan (0)
+        content = `
+          <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#fffde7" stroke="#fbc02d" stroke-width="3" />
+          <rect x="10" y="10" width="180" height="280" rx="10" ry="10" fill="none" stroke="#fbc02d" stroke-width="1.5" />
+          <text x="25" y="32" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="#f57f17" text-anchor="middle">0</text>
+          <text x="175" y="278" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="#f57f17" text-anchor="middle" transform="rotate(180 175 272)">0</text>
+          <g transform="translate(100, 130) scale(1.1)">
+            <path d="M -22 18 L 22 18 L 22 5 L 12 5 L 8 -13 L -12 -13 L -17 5 L -22 5 Z" fill="#cfd8dc" stroke="#90a4ae" stroke-width="1.5" />
+            <line x1="-10" y1="-13" x2="-10" y2="-25" stroke="#37474f" stroke-width="1.8" />
+            <line x1="6" y1="-13" x2="6" y2="-25" stroke="#37474f" stroke-width="1.8" />
+            <path d="M -16 -25 L 12 -25 L 8 -29 L -12 -29 Z" fill="#ffb74d" stroke="#f57c00" stroke-width="1.2" />
+            <circle cx="-12" cy="18" r="7" fill="#37474f" stroke="#212121" stroke-width="0.8" />
+            <circle cx="12" cy="18" r="7" fill="#37474f" stroke="#212121" stroke-width="0.8" />
+            <circle cx="-12" cy="18" r="2.5" fill="#ffffff" />
+            <circle cx="12" cy="18" r="2.5" fill="#ffffff" />
+          </g>
+          <text x="100" y="225" font-family="'Courier New', monospace" font-weight="bold" font-size="13" fill="#f57f17" text-anchor="middle">MULLIGAN</text>
+          <text x="100" y="265" font-family="'Georgia', serif" font-weight="bold" font-size="34" fill="#f57f17" text-anchor="middle">0</text>
+        `;
+      } else {
+        // Values 1 to 12
+        let numColor = '#2e7d32'; // Green for 1-4
+        if (value >= 5 && value <= 8) numColor = '#ef6c00'; // Orange for 5-8
+        else if (value >= 9) numColor = '#c62828'; // Red for 9-12
+
+        // Helper to draw mini balls
+        let ballsHTML = '';
+        const cols = Math.min(value, 6);
+        const rows = Math.ceil(value / 6);
+        const spacing = 16;
+        const startX = -((cols - 1) * spacing) / 2;
+        const startY = -((rows - 1) * spacing) / 2;
+        for (let i = 0; i < value; i++) {
+          const row = Math.floor(i / 6);
+          const col = i % 6;
+          const x = startX + col * spacing;
+          const y = startY + row * spacing;
+          ballsHTML += `
+            <circle cx="${x}" cy="${y}" r="5" fill="#ffffff" stroke="#b0bec5" stroke-width="0.8" />
+            <circle cx="${x - 1}" cy="${y - 1}" r="0.8" fill="#b0bec5" />
+          `;
+        }
+
+        content = `
+          <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#ffffff" stroke="#cfd8dc" stroke-width="2.5" />
+          <rect x="10" y="10" width="180" height="280" rx="10" ry="10" fill="none" stroke="${numColor}" stroke-width="1.5" />
+          <text x="25" y="32" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="${numColor}" text-anchor="middle">${value}</text>
+          <text x="175" y="278" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="${numColor}" text-anchor="middle" transform="rotate(180 175 272)">${value}</text>
+          <text x="100" y="140" font-family="'Georgia', serif" font-weight="bold" font-size="64" fill="${numColor}" text-anchor="middle">${value}</text>
+          <g transform="translate(100, 195)">
+            ${ballsHTML}
+          </g>
+        `;
+      }
+    }
+
+    const selectedStyle = isSelected ? 'box-shadow: 0 0 20px #ffeb3b; transform: translateY(-18px); transition: all 0.25s;' : 'transition: all 0.25s;';
+    const borderHighlight = isSelected ? 'stroke="#ffeb3b" stroke-width="4"' : '';
+    const cardTitle = !revealed ? 'Carta boca abajo' : `Carta de valor ${value}`;
+
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" class="card-svg ${customClass} ${isSelected ? 'selected' : ''}" style="width: 100%; height: 100%; display: block; ${selectedStyle}" title="${cardTitle}">
+        <title>${cardTitle}</title>
+        ${content}
+        ${borderHighlight ? `<rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="none" ${borderHighlight} />` : ''}
+      </svg>
+    `;
+  }
+
   // Attach to window global scope
   window.createCardSVG = createCardSVG;
+  window.createPlayNineCardSVG = createPlayNineCardSVG;
   window.getSuitSVG = getSuitSVG;
 })();

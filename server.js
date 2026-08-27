@@ -83,6 +83,27 @@ function createDeck() {
   return deck;
 }
 
+// Helper: Create a Play Nine 108-card deck
+function createPlayNineDeck() {
+  const deck = [];
+  let id = 0;
+  // -5 Hole-in-One: 8 cards
+  for (let i = 0; i < 8; i++) {
+    deck.push({ id: `pn_${id++}`, value: -5 });
+  }
+  // 0 Mulligan: 4 cards
+  for (let i = 0; i < 4; i++) {
+    deck.push({ id: `pn_${id++}`, value: 0 });
+  }
+  // 1 to 12: 8 cards each
+  for (let val = 1; val <= 12; val++) {
+    for (let i = 0; i < 8; i++) {
+      deck.push({ id: `pn_${id++}`, value: val });
+    }
+  }
+  return deck;
+}
+
 // Helper: Shuffle deck (Fisher-Yates)
 function shuffle(deck) {
   for (let i = deck.length - 1; i > 0; i--) {
@@ -331,7 +352,11 @@ function startNewRound(room) {
   }
 
   if (!deck) {
-    deck = createDeck();
+    if (room.gameType === 'playnine') {
+      deck = createPlayNineDeck();
+    } else {
+      deck = createDeck();
+    }
     deck = shuffle(deck);
   }
 
@@ -397,6 +422,39 @@ function startNewRound(room) {
       gs.auctionBidHistory = [];
       gs.discardedCard = null;
     }
+  } else if (room.gameType === 'playnine') {
+    gs.status = 'playing_nine_setup';
+    gs.playNineSetupDone = {};
+    
+    // Deal 8 cards face down to each player
+    room.players.forEach(p => {
+      if (p) {
+        gs.hands[p.socketId] = [];
+        for (let i = 0; i < 8; i++) {
+          const card = deck.pop();
+          gs.hands[p.socketId].push({
+            id: card.id,
+            value: card.value,
+            revealed: false
+          });
+        }
+        gs.playNineSetupDone[p.socketId] = false;
+      }
+    });
+
+    // Start discard pile with top card (revealed = true)
+    const firstDiscard = deck.pop();
+    gs.discardPile = [{
+      id: firstDiscard.id,
+      value: firstDiscard.value,
+      revealed: true
+    }];
+
+    gs.deck = deck;
+    gs.drawnCard = null;
+    gs.turnPhase = 'draw';
+    gs.lastTurnTriggeredBy = null;
+    gs.lastTurnRemaining = null;
   }
 
   // Set deck count
@@ -1262,6 +1320,248 @@ io.on('connection', (socket) => {
     });
   });
 
+  // --- PLAY NINE CARD GAME SOCKET HANDLERS ---
+  
+  // Reveal two initial cards
+  socket.on('playnine_reveal_initial', ({ roomId, cardIds }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameState.status !== 'playing_nine_setup') return;
+
+    const gs = room.gameState;
+    const playerHand = gs.hands[socket.id];
+    if (!playerHand) return;
+
+    if (!Array.isArray(cardIds) || cardIds.length !== 2) return;
+
+    let count = 0;
+    playerHand.forEach(c => {
+      if (cardIds.includes(c.id) && !c.revealed) {
+        c.revealed = true;
+        count++;
+      }
+    });
+
+    if (count > 0) {
+      // Check if they have revealed at least 2 cards in total
+      const revealedCount = playerHand.filter(c => c.revealed).length;
+      if (revealedCount >= 2) {
+        gs.playNineSetupDone[socket.id] = true;
+        const player = room.players.find(p => p && p.socketId === socket.id);
+        io.to(roomId).emit('log_message', {
+          text: `⛳ ${player.name} ha revelado sus cartas iniciales.`,
+          type: 'system'
+        });
+
+        // Check if all seated players have finished setup
+        const allReady = room.players
+          .filter(p => p !== null)
+          .every(p => gs.playNineSetupDone[p.socketId]);
+
+        if (allReady) {
+          gs.status = 'playing_nine';
+          io.to(roomId).emit('log_message', {
+            text: `⛳ ¡Todos listos! Empieza el hoyo ${gs.currentHole}. Turno de ${room.players[gs.currentTurn].name}.`,
+            type: 'system'
+          });
+        }
+
+        io.to(roomId).emit('room_state', {
+          gameType: room.gameType,
+          maxPlayers: room.maxPlayers,
+          players: room.players,
+          gameState: room.gameState
+        });
+      }
+    }
+  });
+
+  // Draw from deck
+  socket.on('playnine_draw_deck', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameState.status !== 'playing_nine') return;
+
+    const gs = room.gameState;
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player || gs.currentTurn !== player.seat) return;
+    if (gs.turnPhase !== 'draw') return;
+
+    if (gs.deck.length === 0) {
+      if (gs.discardPile.length > 1) {
+        const topCard = gs.discardPile.pop();
+        const newDeck = gs.discardPile.map(c => ({ ...c, revealed: false }));
+        gs.deck = shuffle(newDeck);
+        gs.discardPile = [topCard];
+        io.to(roomId).emit('log_message', {
+          text: `🔄 El mazo se había agotado. Se ha barajado la pila de descarte para crear un nuevo mazo.`,
+          type: 'system'
+        });
+      } else {
+        socket.emit('log_message', { text: `No quedan cartas en el mazo.`, type: 'system' });
+        return;
+      }
+    }
+
+    const card = gs.deck.pop();
+    gs.drawnCard = { id: card.id, value: card.value };
+    gs.drawnFrom = 'deck';
+    gs.turnPhase = 'place';
+    gs.deckCount = gs.deck.length;
+
+    io.to(roomId).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: room.gameState
+    });
+  });
+
+  // Take top of discard pile
+  socket.on('playnine_take_discard', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameState.status !== 'playing_nine') return;
+
+    const gs = room.gameState;
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player || gs.currentTurn !== player.seat) return;
+    if (gs.turnPhase !== 'draw') return;
+
+    if (gs.discardPile.length === 0) return;
+
+    const card = gs.discardPile.pop();
+    gs.drawnCard = { id: card.id, value: card.value };
+    gs.drawnFrom = 'discard';
+    gs.turnPhase = 'place';
+
+    io.to(roomId).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: room.gameState
+    });
+  });
+
+  // Place card (replace existing card)
+  socket.on('playnine_place_card', ({ roomId, cardIndex }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameState.status !== 'playing_nine') return;
+
+    const gs = room.gameState;
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player || gs.currentTurn !== player.seat) return;
+    if (gs.turnPhase !== 'place' || !gs.drawnCard) return;
+
+    const index = parseInt(cardIndex);
+    if (index < 0 || index >= 8) return;
+
+    const playerHand = gs.hands[socket.id];
+    const oldCard = playerHand[index];
+
+    // Replace card
+    playerHand[index] = {
+      id: gs.drawnCard.id,
+      value: gs.drawnCard.value,
+      revealed: true
+    };
+
+    // Discard old card
+    gs.discardPile.push({
+      id: oldCard.id,
+      value: oldCard.value,
+      revealed: true
+    });
+
+    gs.drawnCard = null;
+    gs.turnPhase = 'draw';
+
+    advancePlayNineTurn(room);
+  });
+
+  // Discard drawn card and flip a face-down card
+  socket.on('playnine_discard_and_reveal', ({ roomId, cardIndex }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameState.status !== 'playing_nine') return;
+
+    const gs = room.gameState;
+    const player = room.players.find(p => p && p.socketId === socket.id);
+    if (!player || gs.currentTurn !== player.seat) return;
+    if (gs.turnPhase !== 'place' || !gs.drawnCard) return;
+
+    const index = parseInt(cardIndex);
+    if (index < 0 || index >= 8) return;
+
+    const playerHand = gs.hands[socket.id];
+    const card = playerHand[index];
+    if (card.revealed) {
+      socket.emit('log_message', { text: `Esa carta ya está visible. Selecciona una carta oculta.`, type: 'system' });
+      return;
+    }
+
+    // Discard the drawn card
+    gs.discardPile.push({
+      id: gs.drawnCard.id,
+      value: gs.drawnCard.value,
+      revealed: true
+    });
+
+    // Reveal the selected card
+    card.revealed = true;
+
+    gs.drawnCard = null;
+    gs.turnPhase = 'draw';
+
+    advancePlayNineTurn(room);
+  });
+
+  // Move to next Play Nine hole
+  socket.on('playnine_next_hole', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameState.status !== 'playing_nine_score') return;
+
+    const gs = room.gameState;
+    if (gs.currentHole < 9) {
+      gs.currentHole++;
+      startNewRound(room);
+      io.to(roomId).emit('room_state', {
+        gameType: room.gameType,
+        maxPlayers: room.maxPlayers,
+        players: room.players,
+        gameState: room.gameState
+      });
+      io.to(roomId).emit('log_message', { text: `⛳ Empezando hoyo ${gs.currentHole}. ¡A jugar!`, type: 'system' });
+    } else {
+      // Game ended after 9 holes
+      gs.status = 'playing_nine_end';
+      io.to(roomId).emit('room_state', {
+        gameType: room.gameType,
+        maxPlayers: room.maxPlayers,
+        players: room.players,
+        gameState: room.gameState
+      });
+    }
+  });
+
+  // Restart Play Nine tournament
+  socket.on('playnine_restart', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room || room.gameState.status !== 'playing_nine_end') return;
+
+    room.players.forEach(p => {
+      if (p) room.gameState.playNineScores[p.seat] = [];
+    });
+    room.gameState.currentHole = 1;
+    room.gameState.dealerSeat = 0;
+
+    startNewRound(room);
+
+    io.to(roomId).emit('room_state', {
+      gameType: room.gameType,
+      maxPlayers: room.maxPlayers,
+      players: room.players,
+      gameState: room.gameState
+    });
+    io.to(roomId).emit('log_message', { text: `⛳ Reiniciando torneo de Play Nine. ¡Hoyo 1!`, type: 'system' });
+  });
+
   // CHAT MESSAGE
   socket.on('chat_message', ({ roomId, message }) => {
     const player = rooms[roomId]?.players.find(p => p && p.socketId === socket.id);
@@ -1522,6 +1822,109 @@ function evaluateRoundEnd(room) {
     players: room.players,
     gameState: gs
   });
+}
+
+// Play Nine Helper: Advance turn
+function advancePlayNineTurn(room) {
+  const gs = room.gameState;
+  const activePlayer = room.players[gs.currentTurn];
+  const activeHand = gs.hands[activePlayer.socketId];
+
+  // Check if active player triggered the end of the round (all 8 cards revealed)
+  const allRevealed = activeHand.every(c => c.revealed);
+  if (allRevealed && gs.lastTurnTriggeredBy === null) {
+    gs.lastTurnTriggeredBy = gs.currentTurn;
+    gs.lastTurnRemaining = room.players.filter(p => p !== null).length - 1;
+    io.to(room.id).emit('log_message', {
+      text: `⛳ ¡${activePlayer.name} ha completado sus 8 cartas! Último turno para los demás jugadores.`,
+      type: 'system'
+    });
+  } else if (gs.lastTurnRemaining !== null) {
+    gs.lastTurnRemaining--;
+  }
+
+  // Check if round is over
+  if (gs.lastTurnRemaining === 0) {
+    endPlayNineHole(room);
+    return;
+  }
+
+  // Advance turn to next active player
+  let nextTurn = gs.currentTurn;
+  const numPlayers = room.players.length;
+  do {
+    nextTurn = (nextTurn + 1) % numPlayers;
+  } while (room.players[nextTurn] === null);
+
+  gs.currentTurn = nextTurn;
+
+  io.to(room.id).emit('room_state', {
+    gameType: room.gameType,
+    maxPlayers: room.maxPlayers,
+    players: room.players,
+    gameState: room.gameState
+  });
+}
+
+// Play Nine Helper: End hole and score
+function endPlayNineHole(room) {
+  const gs = room.gameState;
+  
+  // Reveal all remaining face-down cards for all players
+  room.players.forEach(p => {
+    if (p) {
+      const hand = gs.hands[p.socketId];
+      if (hand) {
+        hand.forEach(c => c.revealed = true);
+      }
+    }
+  });
+
+  // Calculate scores for this hole
+  const holeScores = {};
+  room.players.forEach(p => {
+    if (p) {
+      const hand = gs.hands[p.socketId];
+      let score = 0;
+      if (hand) {
+        // 4 columns: (0,4), (1,5), (2,6), (3,7)
+        for (let col = 0; col < 4; col++) {
+          const topCard = hand[col];
+          const bottomCard = hand[col + 4];
+          if (topCard && bottomCard && topCard.value === bottomCard.value) {
+            // Columns cancel to 0 points (even -5 and -5 cancel to 0)
+            score += 0;
+          } else {
+            if (topCard) score += topCard.value;
+            if (bottomCard) score += bottomCard.value;
+          }
+        }
+      }
+      holeScores[p.seat] = score;
+      if (!gs.playNineScores[p.seat]) {
+        gs.playNineScores[p.seat] = [];
+      }
+      gs.playNineScores[p.seat].push(score);
+    }
+  });
+
+  gs.status = 'playing_nine_score';
+
+  io.to(room.id).emit('room_state', {
+    gameType: room.gameType,
+    maxPlayers: room.maxPlayers,
+    players: room.players,
+    gameState: room.gameState
+  });
+
+  // Log round summary
+  let summary = `⛳ Hoyo ${gs.currentHole} completado. Puntuaciones de esta ronda: `;
+  room.players.forEach(p => {
+    if (p) {
+      summary += `${p.name}: ${holeScores[p.seat]} golp${holeScores[p.seat] === 1 ? 'e' : 'es'}. `;
+    }
+  });
+  io.to(room.id).emit('log_message', { text: summary, type: 'system' });
 }
 
 // Start the server

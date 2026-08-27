@@ -33,7 +33,11 @@ const teamBadge = document.getElementById('team-badge');
 const infoTeam = document.getElementById('info-team');
 const turnIndicator = document.getElementById('turn-indicator');
 const viraCardSlot = document.getElementById('vira-card');
+const viraLabel = document.getElementById('vira-label');
+const playNineDrawnContainer = document.getElementById('playnine-drawn-container');
+const playNineDrawnCard = document.getElementById('playnine-drawn-card');
 const deckCountLabel = document.getElementById('deck-count');
+const deckPile = document.querySelector('.deck-pile');
 const tableSeatsContainer = document.getElementById('table-seats');
 const pokerTable = document.querySelector('.poker-table');
 
@@ -43,6 +47,9 @@ const scoreEnvidoA = document.getElementById('score-envido-a');
 const scoreEnvidoB = document.getElementById('score-envido-b');
 const scoreboardTute = document.getElementById('scoreboard-tute');
 const tuteScoresList = document.getElementById('tute-scores-list');
+const scoreboardPlayNine = document.getElementById('scoreboard-playnine');
+const playNineCurrentHoleLabel = document.getElementById('playnine-current-hole-label');
+const playNineScoresList = document.getElementById('playnine-scores-list');
 
 // Signs Panel
 const signsPanel = document.getElementById('signs-panel');
@@ -152,10 +159,18 @@ function updateLobbyConfigUI(gameType, maxPlayers) {
       <option value="4">4 Jugadores (2 vs 2)</option>
       <option value="6">6 Jugadores (3 vs 3)</option>
     `;
-  } else {
+  } else if (gameType === 'tute') {
     selectEnvidoPlayers.innerHTML = `
       <option value="2">2 Jugadores</option>
       <option value="3">3 Jugadores</option>
+    `;
+  } else if (gameType === 'playnine') {
+    selectEnvidoPlayers.innerHTML = `
+      <option value="2">2 Jugadores</option>
+      <option value="3">3 Jugadores</option>
+      <option value="4">4 Jugadores</option>
+      <option value="5">5 Jugadores</option>
+      <option value="6">6 Jugadores</option>
     `;
   }
   
@@ -165,7 +180,10 @@ function updateLobbyConfigUI(gameType, maxPlayers) {
 // CONFIG CHANGE HANDLERS
 selectGameType.addEventListener('change', () => {
   const gameType = selectGameType.value;
-  const maxPlayers = gameType === 'envido' ? 4 : 2; // Default to 2 for Tute, 4 for Envido
+  let maxPlayers;
+  if (gameType === 'envido') maxPlayers = 4;
+  else if (gameType === 'tute') maxPlayers = 2;
+  else if (gameType === 'playnine') maxPlayers = 4;
   
   updateLobbyConfigUI(gameType, maxPlayers);
   socket.emit('change_config', { 
@@ -251,6 +269,19 @@ function renderLobbySeats(maxPlayers, players) {
 // START GAME BUTTON CLICK
 btnStartGame.addEventListener('click', () => {
   socket.emit('start_game', { roomId });
+});
+
+// PLAY NINE DECK / DISCARD ACTIONS
+deckPile.addEventListener('click', () => {
+  if (roomState && roomState.gameType === 'playnine' && roomState.gameState.status === 'playing_nine' && roomState.gameState.currentTurn === mySeat && roomState.gameState.turnPhase === 'draw') {
+    socket.emit('playnine_draw_deck', { roomId });
+  }
+});
+
+viraCardSlot.addEventListener('click', () => {
+  if (roomState && roomState.gameType === 'playnine' && roomState.gameState.status === 'playing_nine' && roomState.gameState.currentTurn === mySeat && roomState.gameState.turnPhase === 'draw') {
+    socket.emit('playnine_take_discard', { roomId });
+  }
 });
 
 // LEAVE GAME ROOM
@@ -422,7 +453,13 @@ socket.on('room_state', ({ gameType, maxPlayers, players, gameState }) => {
 // RENDERING GAMEPLAY BOARD
 function renderGameBoard(gameType, maxPlayers, players, gameState) {
   // 1. Setup Header labels
-  infoGameType.innerText = gameType === 'envido' ? `Envido Canario (${maxPlayers} jug.)` : `Tute (${maxPlayers} jugadores)`;
+  if (gameType === 'envido') {
+    infoGameType.innerText = `Envido Canario (${maxPlayers} jug.)`;
+  } else if (gameType === 'tute') {
+    infoGameType.innerText = `Tute (${maxPlayers} jugadores)`;
+  } else if (gameType === 'playnine') {
+    infoGameType.innerText = `Play Nine (Golf) (${maxPlayers} jug.)`;
+  }
   
   if (myTeam) {
     teamBadge.style.display = 'inline-block';
@@ -435,11 +472,13 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
   if (gameType === 'envido') {
     scoreboardEnvido.style.display = 'flex';
     scoreboardTute.style.display = 'none';
+    scoreboardPlayNine.style.display = 'none';
     scoreEnvidoA.innerText = gameState.scores.teamA;
     scoreEnvidoB.innerText = gameState.scores.teamB;
-  } else {
+  } else if (gameType === 'tute') {
     scoreboardEnvido.style.display = 'none';
     scoreboardTute.style.display = 'flex';
+    scoreboardPlayNine.style.display = 'none';
     
     tuteScoresList.innerHTML = '';
     players.forEach(p => {
@@ -470,6 +509,27 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
         <span style="font-size: 0.65rem; color: #ffb74d;">${defeatsStr}</span>
       `;
       tuteScoresList.appendChild(scoreItem);
+    });
+  } else if (gameType === 'playnine') {
+    scoreboardEnvido.style.display = 'none';
+    scoreboardTute.style.display = 'none';
+    scoreboardPlayNine.style.display = 'flex';
+    
+    playNineScoresList.innerHTML = '';
+    playNineCurrentHoleLabel.innerText = gameState.currentHole;
+    players.forEach(p => {
+      if (!p) return;
+      const scoresArray = gameState.playNineScores[p.seat] || [];
+      const totalScore = scoresArray.reduce((a, b) => a + b, 0);
+      const scoreItem = document.createElement('div');
+      scoreItem.style.display = 'flex';
+      scoreItem.style.flexDirection = 'column';
+      scoreItem.style.alignItems = 'center';
+      scoreItem.innerHTML = `
+        <span style="font-weight: bold; color: white;">${p.name}</span>
+        <span style="font-size: 1.1rem; font-weight: bold; color: var(--accent-color);">${totalScore}</span>
+      `;
+      playNineScoresList.appendChild(scoreItem);
     });
   }
 
@@ -614,47 +674,79 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     discardSelectedInfo.classList.remove('text-pulsing');
   }
   
-  if (gameState.viraCard) {
-    viraCardSlot.innerHTML = window.createCardSVG(gameState.viraCard.suit, gameState.viraCard.number);
-    const viraSvg = viraCardSlot.firstElementChild;
-    if (viraSvg) {
-      viraSvg.style.cursor = 'pointer';
-      viraSvg.addEventListener('click', () => {
-        alertFlash(`📢 Triunfo (Vira): ${getCardNameSpanish(gameState.viraCard)}`);
-      });
-    }
-
-    // Check swap eligibility
-    let canSwap = false;
-    if (gameType === 'tute' && maxPlayers === 2 && gameState.status === 'playing' && mySeat !== null && (gameState.deckCount || 0) > 0) {
-      const wonTricks = (gameState.tricks || []).filter(t => t.winnerSeat === mySeat).length;
-      if (wonTricks > 0) {
-        const hand = gameState.hands[socket.id] || [];
-        const trumpSuit = gameState.trumpSuit;
-        const viraNum = gameState.viraCard.number;
-        const hasSeven = hand.some(c => c.suit === trumpSuit && c.number === 7);
-        const hasTwo = hand.some(c => c.suit === trumpSuit && c.number === 2);
-        const hasThree = hand.some(c => c.suit === trumpSuit && c.number === 3);
-
-        // Standard: Vira is high card [1, 3, 10, 11, 12], player can swap with 7
-        if ([1, 3, 10, 11, 12].includes(viraNum) && hasSeven) {
-          canSwap = true;
-        }
-        // Vira is 7 or lower [7, 6, 5, 4, 2], player can swap with 2 or 3
-        if ([7, 6, 5, 4, 2].includes(viraNum) && (hasTwo || hasThree)) {
-          canSwap = true;
-        }
-      }
-    }
-
-    if (canSwap) {
-      btnSwapVira.style.display = 'block';
+  if (gameType === 'playnine') {
+    // Render deck pile with Play Nine card back
+    deckPile.innerHTML = window.createPlayNineCardSVG(null, false) + `<span class="card-count" id="deck-count">${gameState.deckCount || 0}</span>`;
+    
+    // Render discard pile top card in viraCardSlot
+    viraLabel.innerText = 'Descarte';
+    if (gameState.discardPile && gameState.discardPile.length > 0) {
+      const topDiscard = gameState.discardPile[gameState.discardPile.length - 1];
+      viraCardSlot.innerHTML = window.createPlayNineCardSVG(topDiscard.value, true);
     } else {
-      btnSwapVira.style.display = 'none';
+      viraCardSlot.innerHTML = '';
+    }
+    btnSwapVira.style.display = 'none';
+
+    // Render drawn card if any
+    if (gameState.drawnCard) {
+      playNineDrawnContainer.style.display = 'block';
+      playNineDrawnCard.innerHTML = window.createPlayNineCardSVG(gameState.drawnCard.value, true);
+    } else {
+      playNineDrawnContainer.style.display = 'none';
+      playNineDrawnCard.innerHTML = '';
     }
   } else {
-    viraCardSlot.innerHTML = '';
-    btnSwapVira.style.display = 'none';
+    // Normal Envido/Tute Vira logic
+    viraLabel.innerText = 'Vira';
+    playNineDrawnContainer.style.display = 'none';
+    playNineDrawnCard.innerHTML = '';
+    
+    // Reset deck-pile representation if it was modified
+    deckPile.innerHTML = `<div class="card-back-icon"></div><span class="card-count" id="deck-count">${gameState.deckCount || 0}</span>`;
+
+    if (gameState.viraCard) {
+      viraCardSlot.innerHTML = window.createCardSVG(gameState.viraCard.suit, gameState.viraCard.number);
+      const viraSvg = viraCardSlot.firstElementChild;
+      if (viraSvg) {
+        viraSvg.style.cursor = 'pointer';
+        viraSvg.addEventListener('click', () => {
+          alertFlash(`📢 Triunfo (Vira): ${getCardNameSpanish(gameState.viraCard)}`);
+        });
+      }
+
+      // Check swap eligibility
+      let canSwap = false;
+      if (gameType === 'tute' && maxPlayers === 2 && gameState.status === 'playing' && mySeat !== null && (gameState.deckCount || 0) > 0) {
+        const wonTricks = (gameState.tricks || []).filter(t => t.winnerSeat === mySeat).length;
+        if (wonTricks > 0) {
+          const hand = gameState.hands[socket.id] || [];
+          const trumpSuit = gameState.trumpSuit;
+          const viraNum = gameState.viraCard.number;
+          const hasSeven = hand.some(c => c.suit === trumpSuit && c.number === 7);
+          const hasTwo = hand.some(c => c.suit === trumpSuit && c.number === 2);
+          const hasThree = hand.some(c => c.suit === trumpSuit && c.number === 3);
+
+          // Standard: Vira is high card [1, 3, 10, 11, 12], player can swap with 7
+          if ([1, 3, 10, 11, 12].includes(viraNum) && hasSeven) {
+            canSwap = true;
+          }
+          // Vira is 7 or lower [7, 6, 5, 4, 2], player can swap with 2 or 3
+          if ([7, 6, 5, 4, 2].includes(viraNum) && (hasTwo || hasThree)) {
+            canSwap = true;
+          }
+        }
+      }
+
+      if (canSwap) {
+        btnSwapVira.style.display = 'block';
+      } else {
+        btnSwapVira.style.display = 'none';
+      }
+    } else {
+      viraCardSlot.innerHTML = '';
+      btnSwapVira.style.display = 'none';
+    }
   }
 
   // 5. Render Seating spots and played cards
@@ -665,7 +757,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     const player = players[i];
     if (!player) continue;
 
-    const isTurn = (gameState.currentTurn === i && gameState.status === 'playing');
+    const isTurn = (gameState.currentTurn === i && (gameState.status === 'playing' || gameState.status === 'playing_nine'));
     const played = gameState.playedCards.find(pc => pc.seat === i);
 
     const spotDiv = document.createElement('div');
@@ -683,8 +775,34 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     }
 
     // Check if player has won any tricks in this round (helpful for Tute cantos)
-    const wonTricksCount = gameState.tricks.filter(t => t.winnerSeat === i).length;
+    const wonTricksCount = gameState.tricks ? gameState.tricks.filter(t => t.winnerSeat === i).length : 0;
     const trickWinsBadge = wonTricksCount > 0 ? `<div style="font-size:0.65rem; color:#ffd54f;">Bazas: ${wonTricksCount}</div>` : '';
+
+    // Play Nine mini card grid and scores
+    let playNineGridHTML = '';
+    let scoreText = '';
+    if (gameType === 'playnine' && gameState.hands[player.socketId]) {
+      const hand = gameState.hands[player.socketId];
+      let playNineHoleScore = 0;
+      for (let col = 0; col < 4; col++) {
+        const topCard = hand[col];
+        const bottomCard = hand[col + 4];
+        if (topCard && bottomCard && topCard.revealed && bottomCard.revealed && topCard.value === bottomCard.value) {
+          playNineHoleScore += 0; // vertical pair cancels
+        } else {
+          if (topCard && topCard.revealed) playNineHoleScore += topCard.value;
+          if (bottomCard && bottomCard.revealed) playNineHoleScore += bottomCard.value;
+        }
+      }
+      scoreText = `<div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-color); margin-top: 2px;">Golpes: ${playNineHoleScore}</div>`;
+      
+      playNineGridHTML = `<div class="playnine-mini-grid" style="display: grid; grid-template-columns: repeat(4, 25px); gap: 2px; margin-top: 5px; justify-content: center; pointer-events: none;">`;
+      hand.forEach((card, idx) => {
+        const cardSVG = window.createPlayNineCardSVG(card.value, card.revealed, { class: 'mini-card' });
+        playNineGridHTML += `<div style="width: 25px; height: 37px; border-radius: 2px; overflow: hidden; background: #2e7d32;">${cardSVG}</div>`;
+      });
+      playNineGridHTML += `</div>`;
+    }
 
     spotDiv.innerHTML = `
       <div class="player-avatar">
@@ -692,16 +810,18 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
         ${roleBadge}
       </div>
       <div class="player-name">${player.name}</div>
-      ${trickWinsBadge}
-      <div class="played-card-slot" id="played-card-seat-${i}">
-        <!-- Played card rendered here -->
-      </div>
+      ${gameType === 'playnine' ? scoreText : trickWinsBadge}
+      ${gameType === 'playnine' ? playNineGridHTML : `
+        <div class="played-card-slot" id="played-card-seat-${i}">
+          <!-- Played card rendered here -->
+        </div>
+      `}
     `;
 
     tableSeatsContainer.appendChild(spotDiv);
 
     // If player played a card in this trick, render it
-    if (played) {
+    if (gameType !== 'playnine' && played) {
       const slot = document.getElementById(`played-card-seat-${i}`);
       if (slot) {
         slot.innerHTML = window.createCardSVG(played.card.suit, played.card.number);
@@ -761,16 +881,26 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     btnCountPoints.style.display = 'none';
   }
 
-  // 2. Siguiente Ronda button: Tute only, during round_results status
-  if (gameType === 'tute' && gameState.status === 'round_results') {
+  // 2. Siguiente Ronda / Hoyo button
+  if (gameType === 'playnine' && gameState.status === 'playing_nine_score') {
+    btnNextRound.innerText = '⛳ Siguiente Hoyo';
+    btnNextRound.style.display = 'block';
+    showRoundActionsPanel = true;
+  } else if (gameType === 'tute' && gameState.status === 'round_results') {
+    btnNextRound.innerText = '🔁 Siguiente Ronda';
     btnNextRound.style.display = 'block';
     showRoundActionsPanel = true;
   } else {
     btnNextRound.style.display = 'none';
   }
 
-  // 3. Nueva Partida button: Any game, during game_end status
-  if (gameState.status === 'game_end') {
+  // 3. Nueva Partida / Reiniciar Torneo button
+  if (gameType === 'playnine' && gameState.status === 'playing_nine_end') {
+    btnNewGame.innerText = '⛳ Reiniciar Torneo';
+    btnNewGame.style.display = 'block';
+    showRoundActionsPanel = true;
+  } else if (gameState.status === 'game_end') {
+    btnNewGame.innerText = '🎮 Nueva Partida';
     btnNewGame.style.display = 'block';
     showRoundActionsPanel = true;
   } else {
@@ -788,7 +918,119 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
 }
 
 // RENDER PLAYER HAND CARDS
+let playNineSelectedInitial = []; // Tracker for initial setup reveals (max 2 cards)
+
+function renderPlayNineHand(gameState) {
+  playerHandContainer.innerHTML = '';
+  
+  if (mySeat !== null) {
+    playerRoleIndicator.innerText = `Tu Asiento: ${mySeat + 1}`;
+  } else {
+    playerRoleIndicator.innerText = 'Espectador';
+  }
+
+  // Hide Tute/Envido controls
+  btnPlayCard.disabled = true;
+  btnPlayCard.style.display = 'none';
+  const btnSortSuit = document.getElementById('btn-sort-suit');
+  if (btnSortSuit) btnSortSuit.style.display = 'none';
+
+  const hand = gameState.hands[socket.id];
+  if (!hand || hand.length === 0) {
+    playerHandContainer.innerHTML = '<span style="color:#666;">Sin cartas en mano</span>';
+    return;
+  }
+
+  // Grid styles for 2x4 cards layout
+  playerHandContainer.style.display = 'grid';
+  playerHandContainer.style.gridTemplateColumns = 'repeat(4, minmax(70px, 90px))';
+  playerHandContainer.style.gap = '8px';
+  playerHandContainer.style.justifyContent = 'center';
+  playerHandContainer.style.padding = '5px 10px';
+  playerHandContainer.style.overflow = 'visible';
+
+  hand.forEach((card, index) => {
+    const cardWrapper = document.createElement('div');
+    cardWrapper.style.width = '100%';
+    cardWrapper.style.aspectRatio = '2/3';
+    cardWrapper.style.borderRadius = '6px';
+    cardWrapper.style.overflow = 'hidden';
+    cardWrapper.style.cursor = 'pointer';
+    cardWrapper.style.position = 'relative';
+
+    const isSelected = playNineSelectedInitial.includes(card.id);
+
+    cardWrapper.innerHTML = window.createPlayNineCardSVG(card.value, card.revealed, { selected: isSelected });
+
+    // Interactive actions
+    cardWrapper.addEventListener('click', () => {
+      if (gameState.status === 'playing_nine_setup') {
+        if (card.revealed) return; // already face up
+        
+        const isSel = playNineSelectedInitial.indexOf(card.id);
+        if (isSel !== -1) {
+          playNineSelectedInitial.splice(isSel, 1);
+        } else {
+          if (playNineSelectedInitial.length < 2) {
+            playNineSelectedInitial.push(card.id);
+          }
+        }
+        
+        renderPlayNineHand(gameState); // redraw local setup highlight
+        
+        // Autocompletes initial reveal once 2 are selected
+        if (playNineSelectedInitial.length === 2) {
+          socket.emit('playnine_reveal_initial', { roomId, cardIds: playNineSelectedInitial });
+          playNineSelectedInitial = []; // clear
+        }
+      } else if (gameState.status === 'playing_nine') {
+        if (gameState.currentTurn !== mySeat) {
+          alertFlash("No es tu turno.");
+          return;
+        }
+
+        if (gameState.turnPhase !== 'place' || !gameState.drawnCard) {
+          alertFlash("Primero roba del mazo o de la pila de descarte.");
+          return;
+        }
+
+        // Place drawn card logic
+        if (!card.revealed && gameState.drawnFrom === 'deck') {
+          // Choice prompt
+          const useReplacement = confirm(`¿Quieres REEMPLAZAR tu carta oculta con el ${gameState.drawnCard.value}?\n\n(Pulsa 'Aceptar' para REEMPLAZARLA, o 'Cancelar' para DESCARTAR el ${gameState.drawnCard.value} y REVELAR esta carta oculta).`);
+          if (useReplacement) {
+            socket.emit('playnine_place_card', { roomId, cardIndex: index });
+          } else {
+            socket.emit('playnine_discard_and_reveal', { roomId, cardIndex: index });
+          }
+        } else {
+          // Forced replacement (clicked revealed card, or drawn from discard)
+          socket.emit('playnine_place_card', { roomId, cardIndex: index });
+        }
+      }
+    });
+
+    playerHandContainer.appendChild(cardWrapper);
+  });
+}
+
 function renderPlayerHand(gameState) {
+  if (roomState && roomState.gameType === 'playnine') {
+    renderPlayNineHand(gameState);
+    return;
+  }
+
+  // Restore standard Envido/Tute hand container styles
+  playerHandContainer.style.display = 'flex';
+  playerHandContainer.style.gridTemplateColumns = 'none';
+  playerHandContainer.style.gap = '0px';
+  playerHandContainer.style.justifyContent = 'flex-start';
+  playerHandContainer.style.padding = '0px';
+  
+  btnPlayCard.style.display = 'block';
+  const btnSortSuit = document.getElementById('btn-sort-suit');
+  if (btnSortSuit) btnSortSuit.style.display = 'block';
+
   playerHandContainer.innerHTML = '';
   
   let hand = [...(gameState.hands[socket.id] || [])];
@@ -1412,14 +1654,22 @@ if (elCountPoints) {
 const elNextRound = document.getElementById('btn-next-round');
 if (elNextRound) {
   elNextRound.addEventListener('click', () => {
-    socket.emit('next_round', { roomId });
+    if (roomState && roomState.gameType === 'playnine') {
+      socket.emit('playnine_next_hole', { roomId });
+    } else {
+      socket.emit('next_round', { roomId });
+    }
   });
 }
 
 const elNewGame = document.getElementById('btn-new-game');
 if (elNewGame) {
   elNewGame.addEventListener('click', () => {
-    socket.emit('reset_game', { roomId });
+    if (roomState && roomState.gameType === 'playnine') {
+      socket.emit('playnine_restart', { roomId });
+    } else {
+      socket.emit('reset_game', { roomId });
+    }
   });
 }
 

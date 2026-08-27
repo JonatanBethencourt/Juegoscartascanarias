@@ -41,6 +41,7 @@
               <select id="select-game-type">
                 <option value="envido">Envido Canario</option>
                 <option value="tute">Tute</option>
+                <option value="playnine">Play Nine (Golf)</option>
               </select>
             </div>
             <div class="setup-col" id="envido-players-group">
@@ -95,6 +96,15 @@
           </div>
         </div>
 
+        <div id="scoreboard-playnine" class="scoreboard" style="display: none; flex-direction: column; align-items: center; gap: 4px; padding: 6px 12px; background: rgba(0,0,0,0.85); border: 1.5px solid var(--accent-color); border-radius: 8px;">
+          <div style="font-weight: bold; font-size: 0.8rem; color: var(--accent-color); margin-bottom: 2px;">
+            Hoyo <span id="playnine-current-hole-label">1</span> de 9
+          </div>
+          <div id="playnine-scores-list" style="display: flex; gap: 15px; font-size: 0.75rem; justify-content: center; width: 100%;">
+            <!-- Play Nine scores will render here -->
+          </div>
+        </div>
+
         <div class="header-right">
           <span class="turn-indicator" id="turn-indicator">Esperando turno...</span>
         </div>
@@ -120,9 +130,13 @@
                 <span class="card-count" id="deck-count">40</span>
               </div>
               <div class="vira-container">
-                <span class="label">Vira</span>
+                <span class="label" id="vira-label">Vira</span>
                 <div id="vira-card" class="card-placeholder"></div>
                 <button id="btn-swap-vira" class="btn btn-warning" style="display: none; margin-top: 5px; font-size: 11px; padding: 2px 6px;">Cambiar Vira</button>
+              </div>
+              <div class="vira-container" id="playnine-drawn-container" style="display: none; margin-left: 10px;">
+                <span class="label">Robada</span>
+                <div id="playnine-drawn-card" class="card-placeholder"></div>
               </div>
             </div>
 
