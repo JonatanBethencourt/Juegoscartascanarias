@@ -1451,7 +1451,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Pass turn (only allowed if 1 hidden card remains)
+  // Pass turn (only allowed in place phase with 1 hidden card remains and drawn from deck)
   socket.on('playnine_pass', ({ roomId }) => {
     const room = rooms[roomId];
     if (!room || room.gameState.status !== 'playing_nine') return;
@@ -1459,7 +1459,7 @@ io.on('connection', (socket) => {
     const gs = room.gameState;
     const player = room.players.find(p => p && p.socketId === socket.id);
     if (!player || gs.currentTurn !== player.seat) return;
-    if (gs.turnPhase !== 'draw') return;
+    if (gs.turnPhase !== 'place' || !gs.drawnCard || gs.drawnFrom !== 'deck') return;
 
     const playerHand = gs.hands[socket.id];
     if (!playerHand) return;
@@ -1470,11 +1470,14 @@ io.on('connection', (socket) => {
       return;
     }
 
-    io.to(roomId).emit('log_message', { text: `⛳ ${player.name} decide PASAR su turno.`, type: 'system' });
+    io.to(roomId).emit('log_message', { text: `⛳ ${player.name} descarta el ${gs.drawnCard.value} y decide PASAR su turno.`, type: 'system' });
 
-    // Reset current drawn state variables (just in case)
-    gs.drawnCard = null;
-    gs.drawnFrom = null;
+    // Discard the drawn card
+    gs.discardPile.push({
+      id: gs.drawnCard.id,
+      value: gs.drawnCard.value,
+      revealed: true
+    });
 
     advancePlayNineTurn(room);
 

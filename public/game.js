@@ -986,10 +986,10 @@ function renderPlayNineHand(gameState) {
     return;
   }
 
-  // Toggle playnine pass button if player has exactly 1 hidden card left on their turn
-  const isMyTurnToDraw = (gameState.currentTurn === mySeat && gameState.status === 'playing_nine' && gameState.turnPhase === 'draw');
+  // Toggle playnine pass button if player has exactly 1 hidden card left on their turn in place phase (after drawing from deck)
+  const isMyTurnToPlace = (gameState.currentTurn === mySeat && gameState.status === 'playing_nine' && gameState.turnPhase === 'place' && gameState.drawnFrom === 'deck');
   const hiddenCount = hand.filter(c => !c.revealed).length;
-  if (isMyTurnToDraw && hiddenCount === 1) {
+  if (isMyTurnToPlace && hiddenCount === 1) {
     btnPlayNinePass.style.display = 'block';
   } else {
     btnPlayNinePass.style.display = 'none';
