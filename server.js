@@ -1436,11 +1436,6 @@ io.on('connection', (socket) => {
     if (!player || gs.currentTurn !== player.seat) return;
     if (gs.turnPhase !== 'draw') return;
 
-    if (gs.previousDrawnFrom === 'discard') {
-      socket.emit('log_message', { text: `⚠️ No puedes robar de la pila de descarte si el jugador anterior la usó.`, type: 'system' });
-      return;
-    }
-
     if (gs.discardPile.length === 0) return;
 
     const card = gs.discardPile.pop();

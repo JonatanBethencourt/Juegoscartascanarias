@@ -281,10 +281,6 @@ deckPile.addEventListener('click', () => {
 
 viraCardSlot.addEventListener('click', () => {
   if (roomState && roomState.gameType === 'playnine' && roomState.gameState.status === 'playing_nine' && roomState.gameState.currentTurn === mySeat && roomState.gameState.turnPhase === 'draw') {
-    if (roomState.gameState.previousDrawnFrom === 'discard') {
-      alertFlash("⚠️ No puedes robar del descarte si el jugador anterior ya robó del descarte.");
-      return;
-    }
     socket.emit('playnine_take_discard', { roomId });
   }
 });
@@ -707,7 +703,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
       viraCardSlot.innerHTML = window.createPlayNineCardSVG(topDiscard.value, true);
       
       const discardSvg = viraCardSlot.firstElementChild;
-      const canDrawDiscard = isMyTurnToDraw && gameState.previousDrawnFrom !== 'discard';
+      const canDrawDiscard = isMyTurnToDraw;
 
       if (canDrawDiscard) {
         viraCardSlot.style.cursor = 'pointer';
@@ -718,12 +714,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
         viraCardSlot.style.cursor = 'default';
         viraCardSlot.style.boxShadow = 'none';
         viraCardSlot.style.border = 'none';
-        // Fade out discard top card if locked for current turn
-        if (isMyTurnToDraw && gameState.previousDrawnFrom === 'discard') {
-          viraCardSlot.style.opacity = '0.4';
-        } else {
-          viraCardSlot.style.opacity = '1.0';
-        }
+        viraCardSlot.style.opacity = '1.0';
       }
     } else {
       viraCardSlot.innerHTML = '';
