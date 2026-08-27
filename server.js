@@ -1879,6 +1879,7 @@ function advancePlayNineTurn(room) {
   gs.previousDrawnFrom = gs.drawnFrom;
   gs.drawnFrom = null;
   gs.drawnCard = null;
+  gs.turnPhase = 'draw';
   const activePlayer = room.players[gs.currentTurn];
   const activeHand = gs.hands[activePlayer.socketId];
 
