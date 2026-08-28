@@ -987,6 +987,12 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
   if (isMyTurn) {
     gameScreen.classList.add('my-turn');
     gameScreen.classList.remove('not-my-turn');
+    gameScreen.classList.remove('show-hud-mobile');
+    const elBtnHud = document.getElementById('btn-toggle-hud');
+    if (elBtnHud) {
+      elBtnHud.innerText = '⚙️ Menú';
+      elBtnHud.style.backgroundColor = '';
+    }
   } else {
     gameScreen.classList.add('not-my-turn');
     gameScreen.classList.remove('my-turn');
@@ -1871,6 +1877,20 @@ if (btnToggleChatMobile) {
         btnToggleChatMobile.innerText = '💬 Chat';
         btnToggleChatMobile.style.backgroundColor = '';
       }
+    }
+  });
+}
+
+const btnToggleHud = document.getElementById('btn-toggle-hud');
+if (btnToggleHud) {
+  btnToggleHud.addEventListener('click', () => {
+    gameScreen.classList.toggle('show-hud-mobile');
+    if (gameScreen.classList.contains('show-hud-mobile')) {
+      btnToggleHud.innerText = '👁️ Ocultar';
+      btnToggleHud.style.backgroundColor = '#d84315';
+    } else {
+      btnToggleHud.innerText = '⚙️ Menú';
+      btnToggleHud.style.backgroundColor = '';
     }
   });
 }

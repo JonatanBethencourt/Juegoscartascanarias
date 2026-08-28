@@ -953,6 +953,36 @@ body {
 
 /* RESPONSIVE DESIGN - PHONES (max-width: 600px) */
 @media (max-width: 600px) {
+  /* Floating HUD Toggle Display on Mobile */
+  #btn-toggle-hud {
+    display: block !important;
+  }
+
+  /* Zen Observation Mode (when not my turn and menu is not opened manually) */
+  #game-screen.not-my-turn:not(.show-hud-mobile) .game-header,
+  #game-screen.not-my-turn:not(.show-hud-mobile) .player-controls,
+  #game-screen.not-my-turn:not(.show-hud-mobile) #video-controls {
+    display: none !important;
+  }
+  #game-screen.not-my-turn:not(.show-hud-mobile) .board-container {
+    height: 100vh !important;
+  }
+  #game-screen.not-my-turn:not(.show-hud-mobile) .table-felt {
+    transform: scale(1.18) !important;
+  }
+  #game-screen.not-my-turn:not(.show-hud-mobile) .playnine-mini-grid {
+    grid-template-columns: repeat(4, 38px) !important;
+    gap: 2.5px !important;
+  }
+  #game-screen.not-my-turn:not(.show-hud-mobile) .playnine-mini-grid > div {
+    width: 38px !important;
+    height: 57px !important;
+  }
+  #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot .played-card-slot {
+    width: 55px !important;
+    height: 82px !important;
+  }
+
   /* Toggleable Chat Button Display */
   #btn-toggle-chat-mobile {
     display: block !important;
