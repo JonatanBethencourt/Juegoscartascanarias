@@ -1521,4 +1521,13 @@ body {
   gap: 4px !important;
 }
 
+/* Hide mini-grids of all players whose turn it is NOT during active Play Nine play */
+.poker-table.status-playing_nine .player-spot:not(.current-turn) .playnine-mini-grid {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  margin-top: 0 !important;
+}
+
 

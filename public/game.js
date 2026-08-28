@@ -12,6 +12,8 @@ let selectedDiscardCard = null;
 let wantsMonte = null; // null, true, or false
 let isHandSortedBySuit = false;
 let activeChoiceCardIndex = null;
+let wasMyTurn = false;
+let isTransitionDelayActive = false;
 let roomState = null;
 let roomId = '';
 
@@ -794,7 +796,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
   }
 
   // 5. Render Seating spots and played cards
-  pokerTable.className = `poker-table players-${maxPlayers}`;
+  pokerTable.className = `poker-table players-${maxPlayers} status-${gameState.status}`;
   tableSeatsContainer.innerHTML = '';
 
   for (let i = 0; i < maxPlayers; i++) {
@@ -986,6 +988,8 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
   // 6.5 Apply turn-based focus zoom classes on #game-screen
   const isMyTurn = checkIsMyTurn(gameState);
   if (isMyTurn) {
+    wasMyTurn = true;
+    isTransitionDelayActive = false;
     gameScreen.classList.add('my-turn');
     gameScreen.classList.remove('not-my-turn');
     gameScreen.classList.remove('show-hud-mobile');
@@ -995,8 +999,24 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
       elBtnHud.style.backgroundColor = '';
     }
   } else {
-    gameScreen.classList.add('not-my-turn');
-    gameScreen.classList.remove('my-turn');
+    // If it was just my turn, delay the transition to not-my-turn by 3 seconds
+    if (wasMyTurn) {
+      wasMyTurn = false;
+      isTransitionDelayActive = true;
+      setTimeout(() => {
+        isTransitionDelayActive = false;
+        if (roomState && roomState.gameState && !checkIsMyTurn(roomState.gameState)) {
+          gameScreen.classList.add('not-my-turn');
+          gameScreen.classList.remove('my-turn');
+          renderPlayerHand(roomState.gameState);
+        }
+      }, 3000);
+    }
+
+    if (!isTransitionDelayActive) {
+      gameScreen.classList.add('not-my-turn');
+      gameScreen.classList.remove('my-turn');
+    }
   }
 
   // 7. Render Player Hand
