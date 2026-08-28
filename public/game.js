@@ -865,10 +865,10 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
       }
       scoreText = `<div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-color); margin-top: 2px;">Golpes: ${playNineHoleScore}</div>`;
       
-      playNineGridHTML = `<div class="playnine-mini-grid" style="display: grid; grid-template-columns: repeat(4, 25px); gap: 2px; margin-top: 5px; justify-content: center; pointer-events: none;">`;
+      playNineGridHTML = `<div class="playnine-mini-grid" style="display: grid; grid-template-columns: repeat(4, 32px); gap: 2px; margin-top: 5px; justify-content: center; pointer-events: none;">`;
       hand.forEach((card, idx) => {
         const cardSVG = window.createPlayNineCardSVG(card.value, card.revealed, { class: 'mini-card' });
-        playNineGridHTML += `<div style="width: 25px; height: 37px; border-radius: 2px; overflow: hidden; background: #2e7d32;">${cardSVG}</div>`;
+        playNineGridHTML += `<div style="width: 32px; height: 48px; border-radius: 2px; overflow: hidden; background: #2e7d32;">${cardSVG}</div>`;
       });
       playNineGridHTML += `</div>`;
     }
