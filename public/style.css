@@ -1225,4 +1225,75 @@ body {
   font-weight: bold;
 }
 
+/* ==========================================================================
+   DYNAMIC FOCUS ZOOM (Turn-based layout adjustments)
+   ========================================================================== */
+
+/* Layout animations */
+.board-container {
+  transition: height 0.4s ease-in-out;
+}
+.player-controls {
+  transition: height 0.4s ease-in-out;
+}
+.table-felt {
+  transition: transform 0.4s ease-in-out;
+  transform-origin: center;
+}
+.hand-cards .card-wrapper {
+  transition: all 0.4s ease-in-out;
+}
+.hand-cards .card-wrapper .card-svg {
+  transition: all 0.4s ease-in-out, transform 0.2s, box-shadow 0.2s;
+}
+
+/* 1. MY TURN: Hand is larger, board zooms out */
+.my-turn .board-container {
+  height: calc(100vh - 330px);
+}
+.my-turn .player-controls {
+  height: 270px;
+}
+.my-turn .table-felt {
+  transform: scale(0.9);
+}
+.my-turn .hand-cards .card-wrapper {
+  height: 230px;
+  flex: 0 1 150px;
+}
+.my-turn .hand-cards .card-wrapper .card-svg {
+  width: 150px;
+  height: 225px;
+}
+
+/* 2. NOT MY TURN: Board zooms in, hand is smaller */
+.not-my-turn .board-container {
+  height: calc(100vh - 220px);
+}
+.not-my-turn .player-controls {
+  height: 160px;
+}
+.not-my-turn .table-felt {
+  transform: scale(1.1);
+}
+.not-my-turn .hand-cards .card-wrapper {
+  height: 120px;
+  flex: 0 1 80px;
+}
+.not-my-turn .hand-cards .card-wrapper .card-svg {
+  width: 80px;
+  height: 120px;
+  border-radius: 6px;
+}
+
+/* Play Nine Grid resizing on turns */
+.my-turn #player-hand {
+  grid-template-columns: repeat(4, 90px) !important;
+  gap: 8px !important;
+}
+.not-my-turn #player-hand {
+  grid-template-columns: repeat(4, 55px) !important;
+  gap: 4px !important;
+}
+
 

@@ -982,8 +982,39 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     roundActionsPanel.classList.add('hidden');
   }
 
+  // 6.5 Apply turn-based focus zoom classes on #game-screen
+  const isMyTurn = checkIsMyTurn(gameState);
+  if (isMyTurn) {
+    gameScreen.classList.add('my-turn');
+    gameScreen.classList.remove('not-my-turn');
+  } else {
+    gameScreen.classList.add('not-my-turn');
+    gameScreen.classList.remove('my-turn');
+  }
+
   // 7. Render Player Hand
   renderPlayerHand(gameState);
+}
+
+function checkIsMyTurn(gameState) {
+  if (mySeat === null) return false;
+  if (gameState.status === 'game_end') return false;
+  
+  if (gameState.status === 'playing_nine_setup') return true; // everyone acts during setup
+  
+  if (gameState.status === 'playing_nine') {
+    return gameState.currentTurn === mySeat;
+  }
+  if (gameState.status === 'playing') {
+    return gameState.currentTurn === mySeat;
+  }
+  if (gameState.status === 'auction') {
+    return gameState.auctionCurrentTurn === mySeat;
+  }
+  if (gameState.status === 'selection' || gameState.status === 'discard') {
+    return gameState.auctionHighestBidder === mySeat;
+  }
+  return false;
 }
 
 // RENDER PLAYER HAND CARDS
