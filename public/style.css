@@ -1102,31 +1102,31 @@ body {
   }
 
   .not-my-turn .board-container {
-    height: calc(100vh - 180px);
+    height: calc(100vh - 170px);
   }
   .not-my-turn .player-controls {
-    height: 120px;
+    height: 110px;
   }
   .not-my-turn .table-felt {
     transform: scale(1.08);
   }
   .not-my-turn .hand-cards .card-wrapper {
-    height: 80px;
-    flex: 0 1 45px;
+    height: 54px;
+    flex: 0 1 36px;
   }
   .not-my-turn .hand-cards .card-wrapper .card-svg {
-    width: 45px;
-    height: 68px;
-    border-radius: 4px;
+    width: 36px;
+    height: 54px;
+    border-radius: 3px;
   }
 
   /* Play Nine Grid resizing on Mobile turns */
   .my-turn #player-hand {
-    grid-template-columns: repeat(4, 52px) !important;
+    grid-template-columns: repeat(4, 55px) !important;
     gap: 4px !important;
   }
   .not-my-turn #player-hand {
-    grid-template-columns: repeat(4, 38px) !important;
+    grid-template-columns: repeat(4, 28px) !important;
     gap: 2px !important;
   }
 
@@ -1142,21 +1142,21 @@ body {
 
   /* Opponent Mini Cards Grid scaling on Mobile turns */
   .my-turn .playnine-mini-grid {
-    grid-template-columns: repeat(4, 18px) !important;
+    grid-template-columns: repeat(4, 16px) !important;
     gap: 1px !important;
   }
   .my-turn .playnine-mini-grid > div {
-    width: 18px !important;
-    height: 27px !important;
+    width: 16px !important;
+    height: 24px !important;
   }
 
   .not-my-turn .playnine-mini-grid {
-    grid-template-columns: repeat(4, 25px) !important;
+    grid-template-columns: repeat(4, 32px) !important;
     gap: 1.5px !important;
   }
   .not-my-turn .playnine-mini-grid > div {
-    width: 25px !important;
-    height: 37px !important;
+    width: 32px !important;
+    height: 48px !important;
   }
 
   /* Footer Controls actions layout on Mobile */
