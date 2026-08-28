@@ -899,141 +899,293 @@ body {
 }
 
 /* RESPONSIVE DESIGN */
-@media (max-width: 900px) {
+/* RESPONSIVE DESIGN - TABLET (601px to 1024px) */
+@media (min-width: 601px) and (max-width: 1024px) {
+  .board-container {
+    flex-direction: row;
+    height: calc(100vh - 280px);
+  }
+  
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+  }
+  
+  .poker-table {
+    padding: 10px;
+  }
+
+  .table-felt {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .player-spot {
+    width: 120px;
+    height: 180px;
+  }
+
+  .player-spot .player-avatar {
+    width: 45px;
+    height: 45px;
+    font-size: 0.95rem;
+  }
+
+  .player-spot .played-card-slot {
+    width: 75px;
+    height: 112px;
+  }
+
+  .not-my-turn .player-spot .played-card-slot {
+    width: 90px;
+    height: 135px;
+  }
+
+  .not-my-turn .playnine-mini-grid {
+    grid-template-columns: repeat(4, 32px) !important;
+    gap: 2px !important;
+  }
+  .not-my-turn .playnine-mini-grid > div {
+    width: 32px !important;
+    height: 48px !important;
+  }
+}
+
+/* RESPONSIVE DESIGN - PHONES (max-width: 600px) */
+@media (max-width: 600px) {
+  /* Toggleable Chat Button Display */
+  #btn-toggle-chat-mobile {
+    display: block !important;
+  }
+
+  /* Chat/Sidebar Overlay Mode */
+  .sidebar {
+    display: none;
+  }
+  .sidebar.chat-open-mobile {
+    display: flex !important;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 100vw;
+    height: calc(100vh - 60px);
+    z-index: 1000;
+    background: rgba(16,16,16,0.98);
+    border-top: 1px solid var(--border-color);
+  }
+
   /* Game Header Stack */
   .game-header {
     height: auto;
     flex-direction: column;
-    padding: 8px 10px;
-    gap: 8px;
+    padding: 6px 8px;
+    gap: 6px;
   }
   .header-left, .header-right {
     width: 100%;
     justify-content: center;
     flex-wrap: wrap;
+    gap: 5px;
   }
   .lobby-card {
-    padding: 20px 15px;
+    padding: 15px 10px;
   }
   .lobby-card h1 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
   }
 
+  /* Prevent scrolling: Board container takes remaining height minus hand controls */
   .board-container {
     flex-direction: column;
-    height: auto;
-    overflow-y: auto;
+    height: calc(100vh - 220px);
+    overflow: hidden;
   }
-  
-  .sidebar {
-    width: 100%;
-    height: auto;
-    border-left: none;
-    border-top: 1px solid var(--border-color);
-  }
-  
-  /* Increased table height to prevent player avatar & center overlaps on mobile */
+
   .poker-table {
-    height: 460px;
+    flex: 1;
+    height: 100%;
+    padding: 5px;
   }
-  
+
+  .table-felt {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-width: 8px; /* Thinner border to maximize visual area */
+  }
+
+  /* Player Spots & Avatars sizing on Mobile */
   .player-spot {
-    width: 90px;
-    height: 120px;
+    width: 65px;
+    height: 95px;
   }
-  
+
   .player-spot .player-avatar {
-    width: 35px;
-    height: 35px;
-    font-size: 0.85rem;
+    width: 30px;
+    height: 30px;
+    font-size: 0.75rem;
   }
-  
+
+  .player-spot .player-name {
+    font-size: 0.65rem;
+    max-width: 60px;
+  }
+
   .player-spot .played-card-slot {
+    width: 40px;
+    height: 60px;
+    margin-top: 4px;
+  }
+
+  /* Responsive Seat Positions for phone */
+  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-0 { bottom: 5px; }
+  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-1 { bottom: 40px; left: 5px; }
+  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-2 { top: 40px; left: 5px; }
+  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-3 { top: 5px; }
+  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-4 { top: 40px; right: 5px; }
+  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-5 { bottom: 40px; right: 5px; }
+
+  .poker-table.players-4 .spot-0 { bottom: 5px; }
+  .poker-table.players-4 .spot-1 { top: 50%; left: 5px; }
+  .poker-table.players-4 .spot-2 { top: 5px; }
+  .poker-table.players-4 .spot-3 { top: 50%; right: 5px; }
+
+  .poker-table.players-3 .spot-0 { bottom: 5px; }
+  .poker-table.players-3 .spot-1 { top: 30px; left: 5px; }
+  .poker-table.players-3 .spot-2 { top: 30px; right: 5px; }
+
+  .poker-table.players-2 .spot-0 { bottom: 5px; }
+  .poker-table.players-2 .spot-1 { top: 5px; }
+
+  /* Center Pile sizes on Mobile */
+  .center-cards {
+    gap: 8px;
+  }
+  .deck-pile {
     width: 50px;
     height: 75px;
   }
-  
-  /* Responsive Seat Positions for different player counts */
-  /* 6 Players */
-  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-0 { bottom: 5px; }
-  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-1 { bottom: 60px; left: 5px; }
-  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-2 { top: 60px; left: 5px; }
-  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-3 { top: 5px; }
-  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-4 { top: 60px; right: 5px; }
-  .poker-table:not(.players-4):not(.players-3):not(.players-2) .spot-5 { bottom: 60px; right: 5px; }
-
-  /* 4 Players */
-  .poker-table.players-4 .spot-0 { bottom: 5px; left: 50%; transform: translateX(-50%); }
-  .poker-table.players-4 .spot-1 { top: 50%; left: 5px; transform: translateY(-50%); }
-  .poker-table.players-4 .spot-2 { top: 5px; left: 50%; transform: translateX(-50%); }
-  .poker-table.players-4 .spot-3 { top: 50%; right: 5px; transform: translateY(-50%); }
-
-  /* 3 Players (Tute) */
-  .poker-table.players-3 .spot-0 { bottom: 5px; left: 50%; transform: translateX(-50%); }
-  .poker-table.players-3 .spot-1 { top: 25px; left: 5px; }
-  .poker-table.players-3 .spot-2 { top: 25px; right: 5px; }
-
-  /* 2 Players */
-  .poker-table.players-2 .spot-0 { bottom: 5px; left: 50%; transform: translateX(-50%); }
-  .poker-table.players-2 .spot-1 { top: 5px; left: 50%; transform: translateX(-50%); }
-
-  /* Responsive Center Cards Scaling */
-  .center-cards {
-    gap: 10px;
-  }
-  .deck-pile {
-    width: 80px;
-    height: 120px;
-  }
   .card-back-icon {
-    width: 68px;
-    height: 102px;
+    width: 42px;
+    height: 63px;
   }
   .card-placeholder {
-    width: 80px;
-    height: 120px;
+    width: 50px;
+    height: 75px;
   }
   .card-placeholder svg {
-    width: 80px;
+    width: 50px;
+    height: 75px;
+  }
+  .card-count {
+    font-size: 0.65rem;
+  }
+
+  /* Turn-based Hand and Board height adjustments on Mobile */
+  .my-turn .board-container {
+    height: calc(100vh - 250px);
+  }
+  .my-turn .player-controls {
+    height: 190px;
+  }
+  .my-turn .table-felt {
+    transform: scale(0.92);
+  }
+  .my-turn .hand-cards .card-wrapper {
+    height: 135px;
+    flex: 0 1 65px;
+  }
+  .my-turn .hand-cards .card-wrapper .card-svg {
+    width: 65px;
+    height: 98px;
+  }
+
+  .not-my-turn .board-container {
+    height: calc(100vh - 180px);
+  }
+  .not-my-turn .player-controls {
     height: 120px;
   }
+  .not-my-turn .table-felt {
+    transform: scale(1.08);
+  }
+  .not-my-turn .hand-cards .card-wrapper {
+    height: 80px;
+    flex: 0 1 45px;
+  }
+  .not-my-turn .hand-cards .card-wrapper .card-svg {
+    width: 45px;
+    height: 68px;
+    border-radius: 4px;
+  }
 
-  /* Responsive Player Hand Controls */
+  /* Play Nine Grid resizing on Mobile turns */
+  .my-turn #player-hand {
+    grid-template-columns: repeat(4, 52px) !important;
+    gap: 4px !important;
+  }
+  .not-my-turn #player-hand {
+    grid-template-columns: repeat(4, 38px) !important;
+    gap: 2px !important;
+  }
+
+  /* Played Card Slots size overrides on Mobile turns */
+  .my-turn .player-spot .played-card-slot {
+    width: 40px;
+    height: 60px;
+  }
+  .not-my-turn .player-spot .played-card-slot {
+    width: 50px;
+    height: 75px;
+  }
+
+  /* Opponent Mini Cards Grid scaling on Mobile turns */
+  .my-turn .playnine-mini-grid {
+    grid-template-columns: repeat(4, 18px) !important;
+    gap: 1px !important;
+  }
+  .my-turn .playnine-mini-grid > div {
+    width: 18px !important;
+    height: 27px !important;
+  }
+
+  .not-my-turn .playnine-mini-grid {
+    grid-template-columns: repeat(4, 25px) !important;
+    gap: 1.5px !important;
+  }
+  .not-my-turn .playnine-mini-grid > div {
+    width: 25px !important;
+    height: 37px !important;
+  }
+
+  /* Footer Controls actions layout on Mobile */
   .player-controls {
-    height: 180px;
-    padding: 8px 10px;
+    padding: 5px 8px;
+    gap: 8px;
   }
 
-  /* Overlap card wrapper scaling on mobile/tablet */
-  .hand-cards .card-wrapper {
-    flex: 0 1 80px;
-    min-width: 25px;
-    height: 135px;
-  }
-
-  .hand-cards .card-wrapper .card-svg {
-    width: 90px;
-    height: 135px;
-  }
-
-  .hand-cards .card-wrapper .card-svg:hover {
-    transform: translateY(-15px) scale(1.08);
-  }
-  
   .play-actions {
-    width: 120px;
+    width: 100px;
+    gap: 4px !important;
   }
-  
+
   .btn-primary-large {
-    font-size: 1rem;
-    height: 40px;
-    min-height: 40px;
+    font-size: 0.85rem;
+    height: 36px;
+    min-height: 36px;
   }
 
   #btn-sort-suit {
-    height: 30px !important;
-    min-height: 30px !important;
-    font-size: 0.75rem !important;
+    height: 26px !important;
+    min-height: 26px !important;
+    font-size: 0.65rem !important;
+  }
+
+  #btn-playnine-pass {
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 0.8rem !important;
   }
 }
 

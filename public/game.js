@@ -1858,6 +1858,23 @@ if (btnPlayNinePass) {
   });
 }
 
+const btnToggleChatMobile = document.getElementById('btn-toggle-chat-mobile');
+if (btnToggleChatMobile) {
+  btnToggleChatMobile.addEventListener('click', () => {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+      sidebar.classList.toggle('chat-open-mobile');
+      if (sidebar.classList.contains('chat-open-mobile')) {
+        btnToggleChatMobile.innerText = '❌ Cerrar';
+        btnToggleChatMobile.style.backgroundColor = '#d84315';
+      } else {
+        btnToggleChatMobile.innerText = '💬 Chat';
+        btnToggleChatMobile.style.backgroundColor = '';
+      }
+    }
+  });
+}
+
 // JOIN INITIAL ROOM ON LOAD
 window.onload = () => {
   initRoom();
