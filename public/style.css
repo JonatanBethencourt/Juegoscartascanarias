@@ -1246,6 +1246,15 @@ body {
 .hand-cards .card-wrapper .card-svg {
   transition: all 0.4s ease-in-out, transform 0.2s, box-shadow 0.2s;
 }
+.player-spot .played-card-slot {
+  transition: all 0.4s ease-in-out;
+}
+.playnine-mini-grid {
+  transition: all 0.4s ease-in-out;
+}
+.playnine-mini-grid > div {
+  transition: all 0.4s ease-in-out;
+}
 
 /* 1. MY TURN: Hand is larger, board zooms out */
 .my-turn .board-container {
@@ -1264,6 +1273,10 @@ body {
 .my-turn .hand-cards .card-wrapper .card-svg {
   width: 150px;
   height: 225px;
+}
+.my-turn .player-spot .played-card-slot {
+  width: 100px;
+  height: 150px;
 }
 
 /* 2. NOT MY TURN: Board zooms in, hand is smaller */
@@ -1284,6 +1297,22 @@ body {
   width: 80px;
   height: 120px;
   border-radius: 6px;
+}
+
+/* Scale played cards up during opponent's turn in Tute/Envido */
+.not-my-turn .player-spot .played-card-slot {
+  width: 120px;
+  height: 180px;
+}
+
+/* Scale opponent grids even larger when it's not my turn in Play Nine */
+.not-my-turn .playnine-mini-grid {
+  grid-template-columns: repeat(4, 42px) !important;
+  gap: 3px !important;
+}
+.not-my-turn .playnine-mini-grid > div {
+  width: 42px !important;
+  height: 63px !important;
 }
 
 /* Play Nine Grid resizing on turns */
