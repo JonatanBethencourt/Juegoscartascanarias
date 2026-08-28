@@ -1940,17 +1940,40 @@ function endPlayNineHole(room) {
       const hand = gs.hands[p.socketId];
       let score = 0;
       if (hand) {
-        // 4 columns: (0,4), (1,5), (2,6), (3,7)
+        // Find which columns are vertical pairs
+        const colPairs = [];
         for (let col = 0; col < 4; col++) {
-          const topCard = hand[col];
-          const bottomCard = hand[col + 4];
-          if (topCard && bottomCard && topCard.value === bottomCard.value) {
-            // Columns cancel to 0 points (even -5 and -5 cancel to 0)
-            score += 0;
+          const top = hand[col];
+          const bottom = hand[col + 4];
+          if (top && bottom && top.value === bottom.value) {
+            colPairs[col] = top.value;
           } else {
-            if (topCard) score += topCard.value;
-            if (bottomCard) score += bottomCard.value;
+            colPairs[col] = null;
           }
+        }
+
+        // Identify adjacent columns with the same pair value (forming a -15 double pair)
+        const usedInDoublePair = [false, false, false, false];
+        let bonusScore = 0;
+        for (let col = 0; col < 3; col++) {
+          if (!usedInDoublePair[col] && !usedInDoublePair[col + 1]) {
+            const valA = colPairs[col];
+            const valB = colPairs[col + 1];
+            if (valA !== null && valB !== null && valA === valB) {
+              bonusScore -= 15;
+              usedInDoublePair[col] = true;
+              usedInDoublePair[col + 1] = true;
+            }
+          }
+        }
+
+        score = bonusScore;
+        for (let col = 0; col < 4; col++) {
+          if (usedInDoublePair[col]) continue;
+          if (colPairs[col] !== null) continue; // standard pair cancels to 0
+
+          if (hand[col]) score += hand[col].value;
+          if (hand[col + 4]) score += hand[col + 4].value;
         }
       }
       holeScores[p.seat] = score;

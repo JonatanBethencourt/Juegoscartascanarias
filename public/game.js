@@ -828,15 +828,40 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     if (gameType === 'playnine' && gameState.hands[player.socketId]) {
       const hand = gameState.hands[player.socketId];
       let playNineHoleScore = 0;
+      const colPairs = [];
       for (let col = 0; col < 4; col++) {
-        const topCard = hand[col];
-        const bottomCard = hand[col + 4];
-        if (topCard && bottomCard && topCard.revealed && bottomCard.revealed && topCard.value === bottomCard.value) {
-          playNineHoleScore += 0; // vertical pair cancels
+        const top = hand[col];
+        const bottom = hand[col + 4];
+        if (top && bottom && top.revealed && bottom.revealed && top.value === bottom.value) {
+          colPairs[col] = top.value;
         } else {
-          if (topCard && topCard.revealed) playNineHoleScore += topCard.value;
-          if (bottomCard && bottomCard.revealed) playNineHoleScore += bottomCard.value;
+          colPairs[col] = null;
         }
+      }
+
+      const usedInDoublePair = [false, false, false, false];
+      let bonusScore = 0;
+      for (let col = 0; col < 3; col++) {
+        if (!usedInDoublePair[col] && !usedInDoublePair[col + 1]) {
+          const valA = colPairs[col];
+          const valB = colPairs[col + 1];
+          if (valA !== null && valB !== null && valA === valB) {
+            bonusScore -= 15;
+            usedInDoublePair[col] = true;
+            usedInDoublePair[col + 1] = true;
+          }
+        }
+      }
+
+      playNineHoleScore = bonusScore;
+      for (let col = 0; col < 4; col++) {
+        if (usedInDoublePair[col]) continue;
+        if (colPairs[col] !== null) continue; // standard pair cancels to 0
+
+        const top = hand[col];
+        const bottom = hand[col + 4];
+        if (top && top.revealed) playNineHoleScore += top.value;
+        if (bottom && bottom.revealed) playNineHoleScore += bottom.value;
       }
       scoreText = `<div style="font-size: 0.75rem; font-weight: bold; color: var(--accent-color); margin-top: 2px;">Golpes: ${playNineHoleScore}</div>`;
       
