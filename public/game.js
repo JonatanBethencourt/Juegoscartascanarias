@@ -808,6 +808,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     spotDiv.className = `player-spot spot-${i}`;
     if (isTurn) spotDiv.classList.add('current-turn');
     if (player.team) spotDiv.classList.add(player.team === 'A' ? 'team-a' : 'team-b');
+    if (player.socketId === socket.id) spotDiv.classList.add('local-player');
 
     // Initials
     const initials = player.name.substring(0, 2).toUpperCase();
