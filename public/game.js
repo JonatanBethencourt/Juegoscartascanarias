@@ -17,6 +17,91 @@ let isTransitionDelayActive = false;
 let roomState = null;
 let roomId = '';
 
+// Sound Synthesizers (Web Audio API)
+let audioCtx = null;
+
+function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+// Synthesizes a card flick/snap sound
+function playCardSound() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gainNode = ctx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(350, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.12);
+    
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, now);
+    filter.Q.setValueAtTime(3, now);
+    
+    gainNode.gain.setValueAtTime(0.25, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    
+    osc.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    osc.start(now);
+    osc.stop(now + 0.12);
+  } catch (e) {
+    console.warn("Could not play card sound:", e);
+  }
+}
+
+// Synthesizes a pleasant chime sound for "everyone ready"
+function playReadySound() {
+  try {
+    const ctx = getAudioContext();
+    const now = ctx.currentTime;
+    
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+      
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2000, now + idx * 0.08);
+      
+      gainNode.gain.setValueAtTime(0.15, now + idx * 0.08);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.5);
+      
+      osc.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.5);
+    });
+  } catch (e) {
+    console.warn("Could not play ready sound:", e);
+  }
+}
+
+// Resume/initialize AudioContext on any click
+document.body.addEventListener('click', () => {
+  try {
+    getAudioContext();
+  } catch (e) {}
+}, { once: false });
+
 // DOM Elements
 const lobbyScreen = document.getElementById('lobby-screen');
 const gameScreen = document.getElementById('game-screen');
@@ -420,6 +505,8 @@ function getCardNameSpanish(card) {
 
 // MAIN ROOM STATE SYNCHRONIZATION
 socket.on('room_state', ({ gameType, maxPlayers, players, gameState }) => {
+  const oldState = roomState ? roomState.gameState : null;
+
   roomState = { gameType, maxPlayers, players, gameState };
   activeChoiceCardIndex = null;
   
@@ -433,6 +520,65 @@ socket.on('room_state', ({ gameType, maxPlayers, players, gameState }) => {
     mySeat = null;
     myTeam = null;
     myRole = '';
+  }
+
+  // Trigger sounds based on state changes
+  if (oldState && gameState) {
+    let playedSound = false;
+    
+    // A. Card played sound
+    if (gameType !== 'playnine') {
+      const oldPlayed = (oldState.playedCards || []).length;
+      const newPlayed = (gameState.playedCards || []).length;
+      if (newPlayed > oldPlayed || (newPlayed > 0 && oldPlayed === 0)) {
+        playCardSound();
+        playedSound = true;
+      }
+    } else {
+      // Play Nine specific card sound triggers
+      // 1. Drawn card (deck or discard)
+      if (gameState.drawnCard && !oldState.drawnCard) {
+        playCardSound();
+        playedSound = true;
+      }
+      // 2. Card discarded (discard pile length increased)
+      const oldDiscardCount = (oldState.discardPile || []).length;
+      const newDiscardCount = (gameState.discardPile || []).length;
+      if (!playedSound && newDiscardCount > oldDiscardCount) {
+        playCardSound();
+        playedSound = true;
+      }
+      // 3. Card revealed (total revealed count in hands increased)
+      const countRevealed = (gs) => {
+        if (!gs || !gs.hands) return 0;
+        let count = 0;
+        Object.values(gs.hands).forEach(hand => {
+          if (Array.isArray(hand)) {
+            count += hand.filter(c => c.revealed).length;
+          }
+        });
+        return count;
+      };
+      if (!playedSound && countRevealed(gameState) > countRevealed(oldState)) {
+        playCardSound();
+        playedSound = true;
+      }
+    }
+    
+    // B. Ready/Start Game sound triggers
+    const oldStatus = oldState.status;
+    const newStatus = gameState.status;
+    
+    const isStartingPlay = (
+      (oldStatus === 'lobby' && newStatus !== 'lobby') ||
+      (oldStatus === 'playing_nine_setup' && newStatus === 'playing_nine') ||
+      (oldStatus === 'game_end' && (newStatus === 'playing' || newStatus === 'playing_nine_setup' || newStatus === 'auction')) ||
+      ((oldStatus === 'round_results' || oldStatus === 'round_end_counting' || oldStatus === 'playing_nine_score') && (newStatus === 'playing' || newStatus === 'playing_nine_setup' || newStatus === 'auction'))
+    );
+    
+    if (isStartingPlay) {
+      playReadySound();
+    }
   }
 
   // LOBBY VS GAME SCREEN
@@ -505,7 +651,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
         if (matchDeafeats >= 3) dots = '🔴🔴🔴';
         defeatsStr = `Derrotas: ${dots}`;
       } else {
-        defeatsStr = `Puntos: ${matchDeafeats}/300`;
+        defeatsStr = `Puntos: ${matchDeafeats}/500`;
       }
 
       scoreItem.innerHTML = `
@@ -1101,30 +1247,36 @@ function renderPlayNineHand(gameState) {
 
     // Interactive actions choice overlay if this card is currently selected for replace/flip decision
     if (gameState.status === 'playing_nine' && gameState.currentTurn === mySeat && gameState.turnPhase === 'place' && gameState.drawnFrom === 'deck' && index === activeChoiceCardIndex) {
+      cardWrapper.style.overflow = 'visible';
+
       const overlay = document.createElement('div');
       overlay.style.position = 'absolute';
-      overlay.style.top = '0';
-      overlay.style.left = '0';
-      overlay.style.width = '100%';
-      overlay.style.height = '100%';
-      overlay.style.background = 'rgba(0,0,0,0.85)';
+      overlay.style.width = '140px';
+      overlay.style.height = '180px';
+      overlay.style.left = 'calc(50% - 70px)';
+      overlay.style.top = 'calc(50% - 90px)';
+      overlay.style.background = 'rgba(12, 30, 20, 0.96)';
+      overlay.style.border = '2px solid #ffd54f';
+      overlay.style.borderRadius = '10px';
+      overlay.style.boxShadow = '0 10px 25px rgba(0,0,0,0.85)';
       overlay.style.display = 'flex';
       overlay.style.flexDirection = 'column';
       overlay.style.justifyContent = 'center';
       overlay.style.alignItems = 'center';
-      overlay.style.gap = '5px';
-      overlay.style.zIndex = '10';
-      overlay.style.padding = '4px';
+      overlay.style.gap = '12px';
+      overlay.style.zIndex = '100';
+      overlay.style.padding = '12px';
       overlay.style.boxSizing = 'border-box';
 
       // Reemplazar button
       const btnReplace = document.createElement('button');
       btnReplace.className = 'btn btn-warning';
-      btnReplace.style.width = '95%';
-      btnReplace.style.fontSize = '9px';
-      btnReplace.style.padding = '4px 0';
-      btnReplace.style.lineHeight = '1';
+      btnReplace.style.width = '100%';
+      btnReplace.style.fontSize = '12px';
+      btnReplace.style.padding = '8px 0';
+      btnReplace.style.lineHeight = '1.2';
       btnReplace.style.fontWeight = 'bold';
+      btnReplace.style.borderRadius = '6px';
       btnReplace.innerText = 'Reemplazar';
       btnReplace.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1135,11 +1287,12 @@ function renderPlayNineHand(gameState) {
       // Girar button
       const btnFlip = document.createElement('button');
       btnFlip.className = 'btn btn-primary';
-      btnFlip.style.width = '95%';
-      btnFlip.style.fontSize = '9px';
-      btnFlip.style.padding = '4px 0';
-      btnFlip.style.lineHeight = '1';
+      btnFlip.style.width = '100%';
+      btnFlip.style.fontSize = '12px';
+      btnFlip.style.padding = '8px 0';
+      btnFlip.style.lineHeight = '1.2';
       btnFlip.style.fontWeight = 'bold';
+      btnFlip.style.borderRadius = '6px';
       btnFlip.innerText = 'Girar';
       btnFlip.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1150,13 +1303,14 @@ function renderPlayNineHand(gameState) {
       // Cancelar button
       const btnCancel = document.createElement('button');
       btnCancel.className = 'btn btn-xs';
-      btnCancel.style.width = '95%';
-      btnCancel.style.fontSize = '8px';
-      btnCancel.style.padding = '2px 0';
-      btnCancel.style.lineHeight = '1';
+      btnCancel.style.width = '100%';
+      btnCancel.style.fontSize = '11px';
+      btnCancel.style.padding = '6px 0';
+      btnCancel.style.lineHeight = '1.2';
       btnCancel.style.background = '#444';
       btnCancel.style.color = '#ccc';
       btnCancel.style.border = 'none';
+      btnCancel.style.borderRadius = '6px';
       btnCancel.innerText = 'Cancelar';
       btnCancel.addEventListener('click', (e) => {
         e.stopPropagation();

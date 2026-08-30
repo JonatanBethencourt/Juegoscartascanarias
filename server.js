@@ -1238,13 +1238,13 @@ io.on('connection', (socket) => {
         });
       }
 
-      // Check match end (300 points)
+      // Check match end (500 points)
       let gameEnded = false;
       let winnerName = '';
       let highestMatchPoints = -9999;
       
       room.players.forEach(p => {
-        if (gs.tuteMatchPoints[p.seat] >= 300) {
+        if (gs.tuteMatchPoints[p.seat] >= 500) {
           gameEnded = true;
         }
         if (gs.tuteMatchPoints[p.seat] > highestMatchPoints) {
