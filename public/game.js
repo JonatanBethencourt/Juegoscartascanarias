@@ -146,6 +146,7 @@ try {
   if (saved) floatingBoardPositions = JSON.parse(saved);
 } catch(e) {}
 let highestFloatingZIndex = 100;
+let lastPlayNineAutoTurnState = null;
 
 // Signs Panel
 const signsPanel = document.getElementById('signs-panel');
@@ -1397,6 +1398,32 @@ function renderPlayNineFloatingBoards(gameState) {
   }
 
   const activeSeats = new Set();
+  const isMyTurn = checkIsMyTurn(gameState);
+  const isMobile = window.innerWidth <= 768;
+
+  // On Mobile: auto-minimize when it is my turn, auto-maximize opponents' boards when not my turn
+  if (isMobile && lastPlayNineAutoTurnState !== isMyTurn) {
+    lastPlayNineAutoTurnState = isMyTurn;
+    for (let s = 0; s < maxPlayers; s++) {
+      const pl = players[s];
+      if (!pl) continue;
+      const isLoc = (pl.socketId === socket.id);
+      const bEl = document.getElementById(`playnine-board-seat-${s}`);
+      if (bEl) {
+        if (isMyTurn) {
+          // When it's my turn: all floating boards automatically minimize
+          bEl.classList.add('collapsed');
+        } else {
+          // When it's not my turn: all opponents' boards maximize, local player's board minimizes
+          if (isLoc) {
+            bEl.classList.add('collapsed');
+          } else {
+            bEl.classList.remove('collapsed');
+          }
+        }
+      }
+    }
+  }
 
   for (let i = 0; i < maxPlayers; i++) {
     const p = players[i];
@@ -1436,8 +1463,25 @@ function renderPlayNineFloatingBoards(gameState) {
 
     let playNineHoleScore = bonusScore;
     for (let col = 0; col < 4; col++) {
-      if (usedInDoublePair[col]) continue;
-      if (colPairs[col] !== null) continue; // standard pair cancels to 0
+      if (usedInDoublePair[col]) {
+        // If the double pair was made of -5, both cards in the column still give -10
+        if (colPairs[col] === -5) {
+          if (hand[col] && hand[col].revealed) playNineHoleScore += hand[col].value;
+          if (hand[col + 4] && hand[col + 4].revealed) playNineHoleScore += hand[col + 4].value;
+        }
+        continue;
+      }
+
+      if (colPairs[col] !== null) {
+        if (colPairs[col] === -5) {
+          // -5 pair never cancels to 0, always scores -10 (-5 each)
+          if (hand[col] && hand[col].revealed) playNineHoleScore += hand[col].value;
+          if (hand[col + 4] && hand[col + 4].revealed) playNineHoleScore += hand[col + 4].value;
+        }
+        // Standard pairs of positive numbers and mulligans cancel to 0
+        continue;
+      }
+
       const top = hand[col];
       const bottom = hand[col + 4];
       if (top && top.revealed) playNineHoleScore += top.value;
@@ -1449,6 +1493,15 @@ function renderPlayNineFloatingBoards(gameState) {
       boardEl = document.createElement('div');
       boardEl.id = `playnine-board-seat-${i}`;
       boardEl.className = 'playnine-floating-board';
+
+      // Initial collapse state on mobile
+      if (isMobile) {
+        if (isMyTurn || isLocal) {
+          boardEl.classList.add('collapsed');
+        } else {
+          boardEl.classList.remove('collapsed');
+        }
+      }
 
       // Set position
       let pos = floatingBoardPositions[i];

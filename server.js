@@ -1969,8 +1969,24 @@ function endPlayNineHole(room) {
 
         score = bonusScore;
         for (let col = 0; col < 4; col++) {
-          if (usedInDoublePair[col]) continue;
-          if (colPairs[col] !== null) continue; // standard pair cancels to 0
+          if (usedInDoublePair[col]) {
+            // If the double pair was made of -5, both cards in the column still give -10
+            if (colPairs[col] === -5) {
+              if (hand[col]) score += hand[col].value;
+              if (hand[col + 4]) score += hand[col + 4].value;
+            }
+            continue;
+          }
+
+          if (colPairs[col] !== null) {
+            if (colPairs[col] === -5) {
+              // -5 pair never cancels to 0, always scores -10 (-5 each)
+              if (hand[col]) score += hand[col].value;
+              if (hand[col + 4]) score += hand[col + 4].value;
+            }
+            // Standard pairs of positive numbers and mulligans cancel to 0
+            continue;
+          }
 
           if (hand[col]) score += hand[col].value;
           if (hand[col + 4]) score += hand[col + 4].value;
