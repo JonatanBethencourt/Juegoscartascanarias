@@ -77,6 +77,7 @@
           <span class="game-info-badge">Juego: <strong id="info-game-type">-</strong></span>
           <span class="game-info-badge" id="team-badge" style="display: none;">Equipo: <strong id="info-team">-</strong></span>
           <button id="btn-game-voice" class="btn-gold" style="margin-left: 10px; font-size: 0.8rem; padding: 4px 10px; display: flex; align-items: center; gap: 4px; height: 32px; font-weight: bold; border-radius: 4px; cursor: pointer;">🎙️ Conectar Voz</button>
+          <button id="btn-reset-floating-boards" class="btn-gold" style="display: none; font-size: 0.78rem; padding: 4px 10px; height: 32px; font-weight: bold; border-radius: 4px; cursor: pointer; align-items: center; gap: 4px;">📌 Reordenar Tableros</button>
           <button id="btn-toggle-chat-mobile" class="btn-gold" style="margin-left: 10px; font-size: 0.8rem; padding: 4px 10px; height: 32px; font-weight: bold; border-radius: 4px; cursor: pointer; display: none;">💬 Chat</button>
         </div>
         
@@ -115,6 +116,9 @@
 
       <!-- Main Game Board -->
       <main class="board-container">
+        <!-- Floating Draggable Boards for Play Nine (All Players) -->
+        <div id="playnine-floating-container" class="playnine-floating-container" style="display: none;"></div>
+
         <!-- Floating Video Chat Container -->
         <div id="video-container" class="video-container">
           <div id="video-controls" class="video-controls hidden" style="display: flex; gap: 5px; margin-bottom: 5px; pointer-events: auto; width: 130px;">

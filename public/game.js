@@ -138,6 +138,14 @@ const tuteScoresList = document.getElementById('tute-scores-list');
 const scoreboardPlayNine = document.getElementById('scoreboard-playnine');
 const playNineCurrentHoleLabel = document.getElementById('playnine-current-hole-label');
 const playNineScoresList = document.getElementById('playnine-scores-list');
+const playnineFloatingContainer = document.getElementById('playnine-floating-container');
+const btnResetFloatingBoards = document.getElementById('btn-reset-floating-boards');
+let floatingBoardPositions = {};
+try {
+  const saved = localStorage.getItem('playnine_board_positions');
+  if (saved) floatingBoardPositions = JSON.parse(saved);
+} catch(e) {}
+let highestFloatingZIndex = 100;
 
 // Signs Panel
 const signsPanel = document.getElementById('signs-panel');
@@ -950,10 +958,14 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
     if (!player) continue;
 
     const isTurn = (gameState.currentTurn === i && (gameState.status === 'playing' || gameState.status === 'playing_nine'));
-    const played = gameState.playedCards.find(pc => pc.seat === i);
+    const played = gameState.playedCards ? gameState.playedCards.find(pc => pc.seat === i) : null;
+
+    // Relative seat orientation: local player is always at the bottom (spot-0),
+    // and opponents wrap clockwise around the table (spot-1, spot-2, spot-3...)
+    const relSpot = (mySeat !== null) ? ((i - mySeat + maxPlayers) % maxPlayers) : i;
 
     const spotDiv = document.createElement('div');
-    spotDiv.className = `player-spot spot-${i}`;
+    spotDiv.className = `player-spot spot-${relSpot} seat-${i}`;
     if (isTurn) spotDiv.classList.add('current-turn');
     if (player.team) spotDiv.classList.add(player.team === 'A' ? 'team-a' : 'team-b');
     if (player.socketId === socket.id) spotDiv.classList.add('local-player');
@@ -1167,6 +1179,9 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
 
   // 7. Render Player Hand
   renderPlayerHand(gameState);
+
+  // 8. Render Floating Draggable Boards for Play Nine (All players)
+  renderPlayNineFloatingBoards(gameState);
 }
 
 function checkIsMyTurn(gameState) {
@@ -1370,6 +1385,315 @@ function renderPlayNineHand(gameState) {
     });
 
     playerHandContainer.appendChild(cardWrapper);
+  });
+
+  // Keep floating draggable boards synchronized
+  if (typeof renderPlayNineFloatingBoards === 'function') {
+    renderPlayNineFloatingBoards(gameState);
+  }
+}
+
+// PLAY NINE FLOATING DRAGGABLE BOARDS SYSTEM (ALL PLAYERS)
+function renderPlayNineFloatingBoards(gameState) {
+  if (!playnineFloatingContainer) return;
+  if (!roomState || roomState.gameType !== 'playnine' || !gameState || !['playing_nine_setup', 'playing_nine', 'playing_nine_score', 'playing_nine_end'].includes(gameState.status)) {
+    playnineFloatingContainer.style.display = 'none';
+    if (btnResetFloatingBoards) btnResetFloatingBoards.style.display = 'none';
+    return;
+  }
+
+  playnineFloatingContainer.style.display = 'block';
+  if (btnResetFloatingBoards) btnResetFloatingBoards.style.display = 'flex';
+
+  const players = roomState.players || [];
+  const maxPlayers = roomState.maxPlayers || players.length || 2;
+  const containerW = playnineFloatingContainer.clientWidth || window.innerWidth;
+  const containerH = playnineFloatingContainer.clientHeight || (window.innerHeight - 200);
+
+  // Default layout coordinates if user hasn't dragged them
+  function getDefaultPos(relSeat, totalPlayers) {
+    const isSmallMobile = window.innerWidth <= 480;
+    const isMobile = window.innerWidth <= 768;
+    const boardW = isSmallMobile ? 145 : (isMobile ? 175 : 225);
+    const boardH = isSmallMobile ? 105 : (isMobile ? 125 : 170);
+    
+    if (totalPlayers <= 2) {
+      if (relSeat === 0) return { x: 10, y: Math.max(10, containerH - boardH - 10) };
+      return { x: Math.max(10, containerW - boardW - 10), y: 10 };
+    } else if (totalPlayers === 3) {
+      if (relSeat === 0) return { x: 10, y: Math.max(10, containerH - boardH - 10) };
+      if (relSeat === 1) return { x: 10, y: 10 };
+      return { x: Math.max(10, containerW - boardW - 10), y: 10 };
+    } else if (totalPlayers === 4) {
+      if (relSeat === 0) return { x: 10, y: Math.max(10, containerH - boardH - 10) };
+      if (relSeat === 1) return { x: 10, y: 10 };
+      if (relSeat === 2) return { x: Math.max(10, containerW - boardW - 10), y: 10 };
+      return { x: Math.max(10, containerW - boardW - 10), y: Math.max(10, containerH - boardH - 10) };
+    } else {
+      // 6 players distributed along left and right flanks
+      const col = relSeat < 3 ? 0 : 1;
+      const row = relSeat % 3;
+      const x = col === 0 ? 10 : Math.max(10, containerW - boardW - 10);
+      const y = 10 + row * (boardH + 8);
+      return { x, y };
+    }
+  }
+
+  const activeSeats = new Set();
+
+  for (let i = 0; i < maxPlayers; i++) {
+    const p = players[i];
+    if (!p) continue;
+    activeSeats.add(i);
+
+    const isLocal = (p.socketId === socket.id);
+    const isTurn = (gameState.currentTurn === i && gameState.status === 'playing_nine');
+    const hand = gameState.hands[p.socketId] || [];
+    const relSpot = (mySeat !== null) ? ((i - mySeat + maxPlayers) % maxPlayers) : i;
+
+    // Calculate score
+    const colPairs = [];
+    for (let col = 0; col < 4; col++) {
+      const top = hand[col];
+      const bottom = hand[col + 4];
+      if (top && bottom && top.revealed && bottom.revealed && top.value === bottom.value) {
+        colPairs[col] = top.value;
+      } else {
+        colPairs[col] = null;
+      }
+    }
+
+    const usedInDoublePair = [false, false, false, false];
+    let bonusScore = 0;
+    for (let col = 0; col < 3; col++) {
+      if (!usedInDoublePair[col] && !usedInDoublePair[col + 1]) {
+        const valA = colPairs[col];
+        const valB = colPairs[col + 1];
+        if (valA !== null && valB !== null && valA === valB) {
+          bonusScore -= 20;
+          usedInDoublePair[col] = true;
+          usedInDoublePair[col + 1] = true;
+        }
+      }
+    }
+
+    let playNineHoleScore = bonusScore;
+    for (let col = 0; col < 4; col++) {
+      if (usedInDoublePair[col]) continue;
+      if (colPairs[col] !== null) continue; // standard pair cancels to 0
+      const top = hand[col];
+      const bottom = hand[col + 4];
+      if (top && top.revealed) playNineHoleScore += top.value;
+      if (bottom && bottom.revealed) playNineHoleScore += bottom.value;
+    }
+
+    let boardEl = document.getElementById(`playnine-board-seat-${i}`);
+    if (!boardEl) {
+      boardEl = document.createElement('div');
+      boardEl.id = `playnine-board-seat-${i}`;
+      boardEl.className = 'playnine-floating-board';
+
+      // Set position
+      let pos = floatingBoardPositions[i];
+      if (!pos || typeof pos.x !== 'number') {
+        pos = getDefaultPos(relSpot, maxPlayers);
+      }
+      boardEl.style.left = `${pos.x}px`;
+      boardEl.style.top = `${pos.y}px`;
+
+      // Drag event listeners (mouse & touch)
+      let isDragging = false;
+      let startX = 0, startY = 0;
+      let initialLeft = 0, initialTop = 0;
+
+      const onDragStart = (clientX, clientY) => {
+        isDragging = true;
+        startX = clientX;
+        startY = clientY;
+        const rect = boardEl.getBoundingClientRect();
+        const containerRect = playnineFloatingContainer.getBoundingClientRect();
+        initialLeft = rect.left - containerRect.left;
+        initialTop = rect.top - containerRect.top;
+        boardEl.style.zIndex = `${1000 + (++highestFloatingZIndex)}`;
+      };
+
+      const onDragMove = (clientX, clientY) => {
+        if (!isDragging) return;
+        const dx = clientX - startX;
+        const dy = clientY - startY;
+        let newX = initialLeft + dx;
+        let newY = initialTop + dy;
+        const maxW = Math.max(10, playnineFloatingContainer.clientWidth - boardEl.offsetWidth - 5);
+        const maxH = Math.max(10, playnineFloatingContainer.clientHeight - boardEl.offsetHeight - 5);
+        newX = Math.max(5, Math.min(maxW, newX));
+        newY = Math.max(5, Math.min(maxH, newY));
+        boardEl.style.left = `${newX}px`;
+        boardEl.style.top = `${newY}px`;
+        floatingBoardPositions[i] = { x: newX, y: newY };
+      };
+
+      const onDragEnd = () => {
+        if (isDragging) {
+          isDragging = false;
+          try { localStorage.setItem('playnine_board_positions', JSON.stringify(floatingBoardPositions)); } catch(e){}
+        }
+      };
+
+      // Header mousedown
+      boardEl.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.btn-toggle-collapse') || e.target.closest('.playnine-card-slot')) return;
+        e.preventDefault();
+        onDragStart(e.clientX, e.clientY);
+
+        const onMouseMove = (ev) => onDragMove(ev.clientX, ev.clientY);
+        const onMouseUp = () => {
+          onDragEnd();
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        };
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+
+      // Header touchstart
+      boardEl.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.btn-toggle-collapse') || e.target.closest('.playnine-card-slot')) return;
+        const t = e.touches[0];
+        onDragStart(t.clientX, t.clientY);
+      }, { passive: true });
+
+      boardEl.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        const t = e.touches[0];
+        onDragMove(t.clientX, t.clientY);
+        e.preventDefault();
+      }, { passive: false });
+
+      boardEl.addEventListener('touchend', onDragEnd);
+
+      playnineFloatingContainer.appendChild(boardEl);
+    }
+
+    // Update classes
+    boardEl.classList.toggle('local-player-board', isLocal);
+    boardEl.classList.toggle('active-turn-board', isTurn);
+
+    // Build header & grid
+    const initials = p.name.substring(0, 2).toUpperCase();
+    const isCollapsed = boardEl.classList.contains('collapsed');
+
+    let gridHTML = '';
+    for (let idx = 0; idx < 8; idx++) {
+      const card = hand[idx] || { value: 0, revealed: false };
+      const col = idx % 4;
+      const isMatchingCol = (colPairs[col] !== null);
+      const isDoublePairCol = usedInDoublePair[col];
+      const colClass = isDoublePairCol ? 'matching-col' : (isMatchingCol ? 'matching-col' : '');
+      const isSelectable = (isLocal && (gameState.status === 'playing_nine_setup' || (gameState.status === 'playing_nine' && gameState.turnPhase === 'place' && gameState.currentTurn === mySeat)));
+
+      const cardSVG = window.createPlayNineCardSVG(card.value, card.revealed, { class: 'mini-card' });
+      gridHTML += `
+        <div class="playnine-card-slot ${colClass} ${isSelectable ? 'selectable-card' : ''}" data-index="${idx}" title="Carta ${idx + 1}">
+          ${cardSVG}
+        </div>
+      `;
+    }
+
+    boardEl.innerHTML = `
+      <div class="playnine-board-header">
+        <div class="header-info">
+          <span class="drag-grip-icon" title="Arrastra para mover este juego">⠿</span>
+          <div class="player-avatar-small">${initials}</div>
+          <span class="player-name-text">${p.name} ${isLocal ? '<span style="color:#4fc3f7; font-size:0.7rem;">(Tú)</span>' : ''}</span>
+          <span class="score-pill" title="Puntuación actual en el hoyo">⛳ ${playNineHoleScore}</span>
+          ${isTurn ? '<span class="turn-tag-mini">★ TURNO</span>' : ''}
+        </div>
+        <button class="btn-toggle-collapse" title="${isCollapsed ? 'Expandir juego' : 'Minimizar juego'}">${isCollapsed ? '+' : '−'}</button>
+      </div>
+      <div class="playnine-board-grid">
+        ${gridHTML}
+      </div>
+    `;
+
+    // Toggle collapse button handler
+    const btnCollapse = boardEl.querySelector('.btn-toggle-collapse');
+    if (btnCollapse) {
+      btnCollapse.addEventListener('click', (e) => {
+        e.stopPropagation();
+        boardEl.classList.toggle('collapsed');
+        btnCollapse.innerText = boardEl.classList.contains('collapsed') ? '+' : '−';
+      });
+    }
+
+    // If local player, allow interaction on cards directly from floating board
+    if (isLocal) {
+      boardEl.querySelectorAll('.playnine-card-slot').forEach(slot => {
+        slot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const cardIdx = parseInt(slot.getAttribute('data-index'));
+          const card = hand[cardIdx];
+          if (!card) return;
+
+          if (gameState.status === 'playing_nine_setup') {
+            if (card.revealed) return;
+            const isSel = playNineSelectedInitial.indexOf(card.id);
+            if (isSel !== -1) {
+              playNineSelectedInitial.splice(isSel, 1);
+            } else {
+              if (playNineSelectedInitial.length < 2) {
+                playNineSelectedInitial.push(card.id);
+              }
+            }
+            renderPlayNineHand(gameState);
+            renderPlayNineFloatingBoards(gameState);
+            if (playNineSelectedInitial.length === 2) {
+              socket.emit('playnine_reveal_initial', { roomId, cardIds: playNineSelectedInitial });
+              playNineSelectedInitial = [];
+            }
+          } else if (gameState.status === 'playing_nine') {
+            if (gameState.currentTurn !== mySeat) {
+              alertFlash("No es tu turno.");
+              return;
+            }
+            if (gameState.turnPhase !== 'place' || !gameState.drawnCard) {
+              alertFlash("Primero roba del mazo o de la pila de descarte.");
+              return;
+            }
+            if (!card.revealed && gameState.drawnFrom === 'deck') {
+              activeChoiceCardIndex = cardIdx;
+              renderPlayerHand(gameState);
+              renderPlayNineFloatingBoards(gameState);
+            } else {
+              socket.emit('playnine_place_card', { roomId, cardIndex: cardIdx });
+              activeChoiceCardIndex = null;
+            }
+          }
+        });
+      });
+    }
+  }
+
+  // Remove stale boards
+  playnineFloatingContainer.querySelectorAll('.playnine-floating-board').forEach(el => {
+    const seatId = parseInt(el.id.replace('playnine-board-seat-', ''));
+    if (!activeSeats.has(seatId)) {
+      el.remove();
+    }
+  });
+}
+
+// Reset floating boards button listener
+if (btnResetFloatingBoards) {
+  btnResetFloatingBoards.addEventListener('click', () => {
+    floatingBoardPositions = {};
+    try { localStorage.removeItem('playnine_board_positions'); } catch(e){}
+    if (playnineFloatingContainer) {
+      playnineFloatingContainer.innerHTML = '';
+    }
+    if (roomState && roomState.gameState) {
+      renderPlayNineFloatingBoards(roomState.gameState);
+    }
+    alertFlash("📌 Tableros reordenados en sus posiciones predeterminadas.");
   });
 }
 

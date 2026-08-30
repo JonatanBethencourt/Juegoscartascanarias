@@ -960,18 +960,30 @@ body {
     height: 100vh !important;
   }
   #game-screen.not-my-turn:not(.show-hud-mobile) .table-felt {
-    transform: scale(1.18) !important;
+    transform: scale(1.0) !important;
+    max-width: 95% !important;
+    max-height: 90% !important;
   }
 
-  /* Hide my own seat grid on the table during observation mode */
-  #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot.local-player {
+  /* Keep all opponent seats and games visible at all times */
+  #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot:not(.local-player) {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Hide only local player's duplicate bottom spot in Zen observation mode */
+  #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot.spot-0.local-player {
     display: none !important;
   }
 
-  /* Make other seat mini grids even larger in Zen mode */
+  /* Make other seat mini grids even larger and completely visible in Zen mode */
   #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot:not(.local-player) .playnine-mini-grid {
+    display: grid !important;
     grid-template-columns: repeat(4, 38px) !important;
     gap: 2.5px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
   #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot:not(.local-player) .playnine-mini-grid > div {
     width: 38px !important;
@@ -982,6 +994,41 @@ body {
   #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot:not(.local-player) .played-card-slot {
     width: 55px !important;
     height: 82px !important;
+    display: block !important;
+  }
+
+  /* Floating boards responsive sizing for tablet/mobile */
+  .playnine-floating-board {
+    min-width: 165px;
+    max-width: 190px;
+    border-radius: 8px;
+  }
+  .playnine-board-header {
+    padding: 4px 7px;
+  }
+  .playnine-board-header .player-avatar-small {
+    width: 18px;
+    height: 18px;
+    font-size: 0.55rem;
+  }
+  .playnine-board-header .player-name-text {
+    font-size: 0.72rem;
+    max-width: 65px;
+  }
+  .playnine-board-header .score-pill {
+    font-size: 0.65rem;
+    padding: 1px 4px;
+  }
+  .playnine-board-grid {
+    grid-template-columns: repeat(4, 34px);
+    grid-template-rows: repeat(2, 51px);
+    gap: 2.5px;
+    padding: 5px;
+  }
+  .playnine-card-slot {
+    width: 34px;
+    height: 51px;
+    border-radius: 3px;
   }
 }
 
@@ -1563,13 +1610,185 @@ body {
   gap: 4px !important;
 }
 
-/* Hide mini-grids of all players whose turn it is NOT during active Play Nine play */
-.poker-table.status-playing_nine .player-spot:not(.current-turn) .playnine-mini-grid {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  height: 0 !important;
-  margin-top: 0 !important;
+/* PLAY NINE FLOATING DRAGGABLE BOARDS (ALL PLAYERS) */
+.playnine-floating-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 25;
+  overflow: hidden;
+}
+
+.playnine-floating-board {
+  position: absolute;
+  pointer-events: auto;
+  background: rgba(14, 24, 16, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1.5px solid rgba(255, 213, 79, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  touch-action: none;
+  min-width: 215px;
+  max-width: 260px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.playnine-floating-board.local-player-board {
+  border-color: #4fc3f7;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.65), 0 0 16px rgba(79, 195, 247, 0.4);
+}
+
+.playnine-floating-board.active-turn-board {
+  border-color: #ffd54f;
+  box-shadow: 0 0 25px rgba(255, 213, 79, 0.65), 0 12px 35px rgba(0,0,0,0.75);
+  animation: floatingBoardTurnPulse 1.8s infinite alternate;
+}
+
+@keyframes floatingBoardTurnPulse {
+  0% { border-color: rgba(255, 213, 79, 0.6); box-shadow: 0 0 15px rgba(255, 213, 79, 0.4), 0 10px 30px rgba(0,0,0,0.7); }
+  100% { border-color: #ffd54f; box-shadow: 0 0 28px rgba(255, 213, 79, 0.8), 0 12px 35px rgba(0,0,0,0.8); }
+}
+
+.playnine-board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(8, 14, 10, 0.85);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom: 1px solid rgba(255, 213, 79, 0.2);
+  cursor: grab;
+  gap: 6px;
+}
+
+.playnine-board-header:active {
+  cursor: grabbing;
+}
+
+.playnine-board-header .header-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.playnine-board-header .drag-grip-icon {
+  font-size: 0.85rem;
+  color: #81c784;
+  opacity: 0.8;
+  cursor: grab;
+}
+
+.playnine-board-header .player-avatar-small {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #37474f;
+  border: 1.5px solid #ffd54f;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.playnine-board-header .player-name-text {
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playnine-board-header .score-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #ffd54f;
+  background: rgba(0,0,0,0.6);
+  padding: 2px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 213, 79, 0.35);
+  white-space: nowrap;
+}
+
+.playnine-board-header .turn-tag-mini {
+  font-size: 0.6rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: 1px solid #81c784;
+  animation: pulse 1.5s infinite alternate;
+}
+
+.playnine-board-header .btn-toggle-collapse {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.playnine-board-header .btn-toggle-collapse:hover {
+  color: #fff;
+}
+
+.playnine-board-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 46px);
+  grid-template-rows: repeat(2, 69px);
+  gap: 4px;
+  padding: 8px;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.playnine-floating-board.collapsed .playnine-board-grid {
+  display: none;
+}
+
+.playnine-card-slot {
+  width: 46px;
+  height: 69px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #1b5e20;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.playnine-card-slot.matching-col {
+  box-shadow: 0 0 0 2px #81c784, 0 3px 6px rgba(0,0,0,0.4);
+}
+
+.playnine-card-slot.selectable-card {
+  cursor: pointer;
+}
+
+.playnine-card-slot.selectable-card:hover {
+  transform: translateY(-4px) scale(1.06);
+  box-shadow: 0 0 10px #ffd54f, 0 6px 12px rgba(0,0,0,0.6);
+  z-index: 5;
 }
 
 
