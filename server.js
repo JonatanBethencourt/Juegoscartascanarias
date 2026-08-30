@@ -1952,7 +1952,7 @@ function endPlayNineHole(room) {
           }
         }
 
-        // Identify adjacent columns with the same pair value (forming a -15 double pair)
+        // Identify adjacent columns with the same pair value (forming a -20 double pair / 4 equal cards)
         const usedInDoublePair = [false, false, false, false];
         let bonusScore = 0;
         for (let col = 0; col < 3; col++) {
@@ -1960,7 +1960,7 @@ function endPlayNineHole(room) {
             const valA = colPairs[col];
             const valB = colPairs[col + 1];
             if (valA !== null && valB !== null && valA === valB) {
-              bonusScore -= 15;
+              bonusScore -= 20;
               usedInDoublePair[col] = true;
               usedInDoublePair[col + 1] = true;
             }

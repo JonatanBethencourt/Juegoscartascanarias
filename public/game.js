@@ -995,7 +995,7 @@ function renderGameBoard(gameType, maxPlayers, players, gameState) {
           const valA = colPairs[col];
           const valB = colPairs[col + 1];
           if (valA !== null && valB !== null && valA === valB) {
-            bonusScore -= 15;
+            bonusScore -= 20;
             usedInDoublePair[col] = true;
             usedInDoublePair[col + 1] = true;
           }

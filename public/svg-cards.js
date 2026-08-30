@@ -417,6 +417,7 @@
   }
 
   // Master function to generate card SVG markup
+  // Master function to generate card SVG markup
   function createCardSVG(suit, number, options = {}) {
     const isFlipped = options.flipped || false;
     const isSelected = options.selected || false;
@@ -425,16 +426,30 @@
     let content = '';
 
     if (isFlipped) {
-      // Card Back (Traditional green diamond grid)
+      // Spanish Deck Card Back (Royal emerald & gold diamond guilloche)
       content = `
-        <!-- Card Back -->
-        <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#1b5e20" stroke="#0c2510" stroke-width="3" />
-        <!-- Intricate pattern -->
-        <rect x="10" y="10" width="180" height="280" rx="10" ry="10" fill="none" stroke="#81c784" stroke-width="1.8" stroke-dasharray="6,4" />
-        <!-- Center diamond badge -->
-        <path d="M 100 80 L 150 150 L 100 220 L 50 150 Z" fill="#2e7d32" stroke="#81c784" stroke-width="2" />
-        <circle cx="100" cy="150" r="15" fill="#81c784" />
-        <circle cx="100" cy="150" r="6" fill="#1b5e20" />
+        <!-- Card Back Base -->
+        <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="url(#spanishBackGrad)" stroke="#0b240e" stroke-width="2.5" />
+        <!-- Intricate outer border -->
+        <rect x="8" y="8" width="184" height="284" rx="10" ry="10" fill="none" stroke="#ffd54f" stroke-width="1.8" />
+        <rect x="13" y="13" width="174" height="274" rx="8" ry="8" fill="none" stroke="#81c784" stroke-width="1.2" stroke-dasharray="6,4" />
+        
+        <!-- Diamond Lattice Background -->
+        <g opacity="0.25">
+          <path d="M 20 50 L 100 10 L 180 50 L 100 90 Z M 20 110 L 100 70 L 180 110 L 100 150 Z M 20 170 L 100 130 L 180 170 L 100 210 Z M 20 230 L 100 190 L 180 230 L 100 270 Z" fill="none" stroke="#ffd54f" stroke-width="1.5"/>
+          <path d="M 20 80 L 100 40 L 180 80 L 100 120 Z M 20 140 L 100 100 L 180 140 L 100 180 Z M 20 200 L 100 160 L 180 200 L 100 240 Z M 20 260 L 100 220 L 180 260 L 100 300 Z" fill="none" stroke="#81c784" stroke-width="1"/>
+        </g>
+        
+        <!-- Center royal gold badge -->
+        <path d="M 100 75 L 155 150 L 100 225 L 45 150 Z" fill="url(#spanishBadgeGrad)" stroke="#ffd54f" stroke-width="2.5" filter="url(#dropShadow)" />
+        <path d="M 100 85 L 145 150 L 100 215 L 55 150 Z" fill="none" stroke="#fffde7" stroke-width="1.2" stroke-dasharray="3,3" />
+        <circle cx="100" cy="150" r="22" fill="url(#goldGradient)" stroke="#8d6e63" stroke-width="1.5" />
+        <!-- Crown / royal icon in center -->
+        <path d="M 88 156 L 90 144 L 95 149 L 100 141 L 105 149 L 110 144 L 112 156 Z" fill="#d50000" stroke="#b71c1c" stroke-width="0.8" />
+        <circle cx="100" cy="140" r="1.5" fill="#ffd54f" />
+        <circle cx="90" cy="143" r="1.2" fill="#ffd54f" />
+        <circle cx="110" cy="143" r="1.2" fill="#ffd54f" />
+        <rect x="88" y="156" width="24" height="3" rx="1" fill="#ffd54f" stroke="#b8860b" stroke-width="0.6" />
       `;
     } else {
       const suitInfo = SUITS[suit.toLowerCase()];
@@ -443,10 +458,11 @@
       const color = suitInfo.color;
       const suitSymbol = suitInfo.getSymbol(1);
 
-      // Card Face Base
+      // Card Face Base with subtle satin gradient and crisp inner border
       content = `
         <!-- Card Base -->
-        <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#ffffff" stroke="#cfd8dc" stroke-width="2.5" />
+        <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="url(#cardFaceGrad)" stroke="#cfd8dc" stroke-width="2" />
+        <rect x="7" y="7" width="186" height="286" rx="10" ry="10" fill="none" stroke="#e8eaf6" stroke-width="1" />
         <!-- La Pinta border breaks -->
         ${createPintaBorder(suit)}
       `;
@@ -454,7 +470,7 @@
       // Top-Left Corner Index
       content += `
         <g transform="translate(18, 22)">
-          <text x="0" y="10" font-family="Georgia, serif" font-weight="bold" font-size="22" fill="${color}" text-anchor="middle">${number}</text>
+          <text x="0" y="10" font-family="'Georgia', serif" font-weight="bold" font-size="22" fill="${color}" text-anchor="middle" filter="url(#textShadow)">${number}</text>
           <g transform="translate(-10, 16) scale(0.2)">
             ${suitSymbol}
           </g>
@@ -464,7 +480,7 @@
       // Bottom-Right Corner Index (Rotated)
       content += `
         <g transform="translate(182, 278) rotate(180)">
-          <text x="0" y="10" font-family="Georgia, serif" font-weight="bold" font-size="22" fill="${color}" text-anchor="middle">${number}</text>
+          <text x="0" y="10" font-family="'Georgia', serif" font-weight="bold" font-size="22" fill="${color}" text-anchor="middle" filter="url(#textShadow)">${number}</text>
           <g transform="translate(-10, 16) scale(0.2)">
             ${suitSymbol}
           </g>
@@ -476,17 +492,17 @@
         // Court Card (Sota, Caballo, Rey) with custom graphics
         const court = COURT_GRAPHICS[number];
         if (court) {
-          // Central background medallion to provide figure contrast
           content += `
             <!-- Central Medallion for Court Figures -->
-            <circle cx="100" cy="142" r="54" fill="#fafafa" stroke="#e0e0e0" stroke-width="1.2" />
-            <circle cx="100" cy="142" r="49" fill="none" stroke="#cfd8dc" stroke-width="0.8" stroke-dasharray="2,2" />
+            <circle cx="100" cy="142" r="56" fill="url(#courtMedallionGrad)" stroke="#e0e0e0" stroke-width="1.5" filter="url(#subtleShadow)" />
+            <circle cx="100" cy="142" r="50" fill="none" stroke="#ffd54f" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" />
           `;
           content += court.getGraphic(color, suit);
           
           // Label at the bottom center
           content += `
-            <text x="100" y="260" font-family="'Courier New', monospace" font-weight="bold" font-size="12" fill="${color}" text-anchor="middle" opacity="0.8">${court.name}</text>
+            <rect x="55" y="246" width="90" height="20" rx="10" fill="rgba(255,255,255,0.85)" stroke="#cfd8dc" stroke-width="0.8" />
+            <text x="100" y="260" font-family="'Georgia', serif" font-weight="bold" font-size="12" fill="${color}" text-anchor="middle" letter-spacing="1">${court.name.toUpperCase()}</text>
           `;
         }
       } else {
@@ -515,9 +531,8 @@
       }
     }
 
-    // Interactive selections style
-    const selectedStyle = isSelected ? 'box-shadow: 0 0 20px #ffeb3b; transform: translateY(-18px); transition: all 0.25s;' : 'transition: all 0.25s;';
-    const borderHighlight = isSelected ? 'stroke="#ffeb3b" stroke-width="4"' : '';
+    const selectedStyle = isSelected ? 'filter: drop-shadow(0 0 15px #ffd54f); transform: translateY(-20px); transition: all 0.25s ease-out;' : 'transition: all 0.25s ease-out;';
+    const borderHighlight = isSelected ? 'stroke="#ffd54f" stroke-width="4"' : '';
 
     const suitNames = { oros: 'Oros', copas: 'Copas', espadas: 'Espadas', bastos: 'Bastos' };
     const numberNames = {
@@ -532,11 +547,39 @@
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" class="card-svg ${customClass} ${isSelected ? 'selected' : ''}" style="width: 100%; height: 100%; display: block; ${selectedStyle}" title="${cardTitle}">
         <title>${cardTitle}</title>
         <defs>
+          <linearGradient id="cardFaceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="100%" stop-color="#f5f7fa" />
+          </linearGradient>
+          <radialGradient id="spanishBackGrad" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stop-color="#2e7d32" />
+            <stop offset="60%" stop-color="#1b5e20" />
+            <stop offset="100%" stop-color="#0c2e10" />
+          </radialGradient>
+          <linearGradient id="spanishBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1b5e20" />
+            <stop offset="100%" stop-color="#09280d" />
+          </linearGradient>
+          <radialGradient id="courtMedallionGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="75%" stop-color="#f5f7fa" />
+            <stop offset="100%" stop-color="#e4e7eb" />
+          </radialGradient>
           <radialGradient id="goldGradient" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
             <stop offset="0%" stop-color="#fffde7" />
-            <stop offset="60%" stop-color="#ffd54f" />
-            <stop offset="100%" stop-color="#ffb300" />
+            <stop offset="45%" stop-color="#ffd54f" />
+            <stop offset="85%" stop-color="#ffb300" />
+            <stop offset="100%" stop-color="#b8860b" />
           </radialGradient>
+          <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" />
+          </filter>
+          <filter id="subtleShadow" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.15" />
+          </filter>
+          <filter id="textShadow">
+            <feDropShadow dx="0" dy="1" stdDeviation="0.5" flood-color="#000000" flood-opacity="0.2" />
+          </filter>
         </defs>
         ${content}
         ${borderHighlight ? `<rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="none" ${borderHighlight} />` : ''}
@@ -569,79 +612,144 @@
     let content = '';
 
     if (!revealed) {
-      // Play Nine Card Back
+      // Play Nine Card Back (Luxury Emerald Course Tournament Back)
       content = `
-        <!-- Card Back -->
-        <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#2e7d32" stroke="#1b5e20" stroke-width="3" />
-        <!-- Green grid/golf pattern -->
-        <rect x="10" y="10" width="180" height="280" rx="10" ry="10" fill="none" stroke="#a5d6a7" stroke-width="1.5" stroke-dasharray="8,6" />
-        <!-- Golf ball and tee in center -->
-        <g transform="translate(100, 150) scale(1.2)">
-          <!-- Tee -->
-          <path d="M -4 15 L 4 15 L 2 30 L -2 30 Z" fill="#cfd8dc" stroke="#90a4ae" stroke-width="1" />
-          <path d="M -8 15 C -8 10, 8 10, 8 15 Z" fill="#b0bec5" stroke="#90a4ae" stroke-width="1" />
-          <!-- Ball -->
-          <circle cx="0" cy="-6" r="18" fill="#ffffff" stroke="#cfd8dc" stroke-width="1" />
-          <!-- Ball dimples -->
-          <circle cx="-8" cy="-12" r="1.5" fill="#cfd8dc" />
-          <circle cx="0" cy="-15" r="1.5" fill="#cfd8dc" />
-          <circle cx="8" cy="-12" r="1.5" fill="#cfd8dc" />
-          <circle cx="-10" cy="-4" r="1.5" fill="#cfd8dc" />
-          <circle cx="-2" cy="-6" r="1.5" fill="#cfd8dc" />
-          <circle cx="6" cy="-4" r="1.5" fill="#cfd8dc" />
-          <circle cx="-6" cy="4" r="1.5" fill="#cfd8dc" />
-          <circle cx="2" cy="2" r="1.5" fill="#cfd8dc" />
-          <circle cx="8" cy="4" r="1.5" fill="#cfd8dc" />
+        <!-- Card Back Base -->
+        <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="url(#playNineBackGrad)" stroke="#092910" stroke-width="3" />
+        <!-- Luxury Gold & Silver Inset Borders -->
+        <rect x="8" y="8" width="184" height="284" rx="10" ry="10" fill="none" stroke="#ffd54f" stroke-width="1.8" />
+        <rect x="13" y="13" width="174" height="274" rx="8" ry="8" fill="none" stroke="#a5d6a7" stroke-width="1.2" stroke-dasharray="6,4" />
+        
+        <!-- Golf Fairway Dimple Matrix Pattern in Background -->
+        <g opacity="0.12" fill="#ffffff">
+          <circle cx="35" cy="35" r="3"/><circle cx="65" cy="35" r="3"/><circle cx="95" cy="35" r="3"/><circle cx="125" cy="35" r="3"/><circle cx="155" cy="35" r="3"/>
+          <circle cx="50" cy="55" r="3"/><circle cx="80" cy="55" r="3"/><circle cx="110" cy="55" r="3"/><circle cx="140" cy="55" r="3"/><circle cx="170" cy="55" r="3"/>
+          <circle cx="35" cy="245" r="3"/><circle cx="65" cy="245" r="3"/><circle cx="95" cy="245" r="3"/><circle cx="125" cy="245" r="3"/><circle cx="155" cy="245" r="3"/>
+          <circle cx="50" cy="265" r="3"/><circle cx="80" cy="265" r="3"/><circle cx="110" cy="265" r="3"/><circle cx="140" cy="265" r="3"/><circle cx="170" cy="265" r="3"/>
         </g>
+        
+        <!-- Center Gold Emblem with Crossed Clubs & 3D Ball -->
+        <circle cx="100" cy="145" r="48" fill="url(#golfEmblemGrad)" stroke="#ffd54f" stroke-width="2.5" filter="url(#dropShadow)" />
+        <circle cx="100" cy="145" r="44" fill="none" stroke="#a5d6a7" stroke-width="1" stroke-dasharray="3,2" />
+        
+        <!-- Crossed Gold Golf Clubs -->
+        <g stroke="#ffd54f" stroke-width="2.5" stroke-linecap="round">
+          <line x1="72" y1="120" x2="128" y2="170" />
+          <line x1="128" y1="120" x2="72" y2="170" />
+          <!-- Club heads -->
+          <path d="M 68 116 L 76 118 L 72 124 Z" fill="#ffecb3" stroke="#ffd54f" stroke-width="1.2" />
+          <path d="M 132 116 L 124 118 L 128 124 Z" fill="#ffecb3" stroke="#ffd54f" stroke-width="1.2" />
+        </g>
+        
+        <!-- 3D Golf Ball in center -->
+        <circle cx="100" cy="145" r="18" fill="url(#golfBallGrad)" stroke="#cfd8dc" stroke-width="1.2" filter="url(#subtleShadow)" />
+        <!-- Ball Dimples -->
+        <g fill="#90a4ae" opacity="0.6">
+          <circle cx="93" cy="138" r="1.5"/><circle cx="100" cy="135" r="1.5"/><circle cx="107" cy="138" r="1.5"/>
+          <circle cx="90" cy="145" r="1.5"/><circle cx="96" cy="144" r="1.5"/><circle cx="104" cy="144" r="1.5"/><circle cx="110" cy="145" r="1.5"/>
+          <circle cx="94" cy="152" r="1.5"/><circle cx="100" cy="154" r="1.5"/><circle cx="106" cy="152" r="1.5"/>
+        </g>
+        
+        <!-- Brand Ribbon -->
+        <rect x="40" y="205" width="120" height="24" rx="12" fill="#1b5e20" stroke="#ffd54f" stroke-width="1.5" />
+        <text x="100" y="221" font-family="'Georgia', serif" font-weight="bold" font-size="11" fill="#ffd54f" text-anchor="middle" letter-spacing="1.5">PLAY NINE</text>
       `;
     } else {
       if (value === -5) {
-        // Hole-in-One (-5)
+        // Hole-in-One (-5): Golden Trophy & Emerald Glory
         content = `
-          <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#e8f5e9" stroke="#2e7d32" stroke-width="3" />
-          <rect x="10" y="10" width="180" height="280" rx="10" ry="10" fill="none" stroke="#2e7d32" stroke-width="1.5" />
-          <text x="25" y="32" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="#2e7d32" text-anchor="middle">-5</text>
-          <text x="175" y="278" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="#2e7d32" text-anchor="middle" transform="rotate(180 175 272)">-5</text>
-          <g transform="translate(100, 130) scale(1.1)">
-            <ellipse cx="0" cy="40" rx="22" ry="7" fill="#37474f" stroke="#263238" stroke-width="1.5" />
-            <line x1="-3" y1="40" x2="-3" y2="-40" stroke="#78909c" stroke-width="2.5" stroke-linecap="round" />
-            <path d="M -3 -40 L 22 -28 L -3 -16 Z" fill="#d50000" stroke="#b71c1c" stroke-width="1" />
-            <circle cx="10" cy="36" r="6" fill="#ffffff" stroke="#cfd8dc" stroke-width="0.8" />
+          <!-- Card Base -->
+          <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="url(#holeInOneCardGrad)" stroke="#2e7d32" stroke-width="3" />
+          <rect x="8" y="8" width="184" height="284" rx="10" ry="10" fill="none" stroke="#ffd54f" stroke-width="1.8" />
+          <rect x="13" y="13" width="174" height="274" rx="8" ry="8" fill="none" stroke="#2e7d32" stroke-width="1" stroke-dasharray="4,3" />
+          
+          <!-- Corner Index Numbers -->
+          <text x="25" y="34" font-family="'Georgia', serif" font-weight="bold" font-size="22" fill="#1b5e20" text-anchor="middle">-5</text>
+          <text x="175" y="278" font-family="'Georgia', serif" font-weight="bold" font-size="22" fill="#1b5e20" text-anchor="middle" transform="rotate(180 175 270)">-5</text>
+          
+          <!-- Center Illustration: Flag, Green Hole & 3D Ball -->
+          <g transform="translate(100, 125) scale(1.15)">
+            <!-- Green Cup / Hole -->
+            <ellipse cx="0" cy="40" rx="26" ry="9" fill="#212121" stroke="#37474f" stroke-width="2" />
+            <ellipse cx="0" cy="40" rx="18" ry="5" fill="#000000" />
+            <!-- Flag Pole (Silver-steel) -->
+            <line x1="-4" y1="40" x2="-4" y2="-48" stroke="#90a4ae" stroke-width="3" stroke-linecap="round" />
+            <!-- Gold Pole Top Finial -->
+            <circle cx="-4" cy="-50" r="3.5" fill="url(#goldGradient)" />
+            <!-- Red Triangular Flag with waving fold -->
+            <path d="M -4 -48 L 26 -34 L -4 -20 Z" fill="url(#rubyGradient)" stroke="#b71c1c" stroke-width="1.2" />
+            <path d="M -4 -48 L 10 -40 L -4 -32 Z" fill="#ff5252" opacity="0.6" />
+            <!-- Ball dropping into the hole with star sparks -->
+            <circle cx="10" cy="35" r="7.5" fill="url(#golfBallGrad)" stroke="#cfd8dc" stroke-width="0.9" />
+            <!-- Sparkling Stars -->
+            <polygon points="-25,-10 -22,-4 -16,-4 -21,0 -19,6 -25,2 -31,6 -29,0 -34,-4 -28,-4" fill="#ffd54f" stroke="#ffb300" stroke-width="0.5" />
+            <polygon points="28,5 30,9 35,9 31,12 33,17 28,14 23,17 25,12 21,9 26,9" fill="#ffd54f" stroke="#ffb300" stroke-width="0.5" />
           </g>
-          <text x="100" y="225" font-family="'Courier New', monospace" font-weight="bold" font-size="13" fill="#1b5e20" text-anchor="middle">HOLE IN ONE</text>
-          <text x="100" y="265" font-family="'Georgia', serif" font-weight="bold" font-size="34" fill="#d50000" text-anchor="middle">-5</text>
+          
+          <!-- Banner & Big Score -->
+          <rect x="25" y="202" width="150" height="26" rx="13" fill="#1b5e20" stroke="#ffd54f" stroke-width="1.5" filter="url(#subtleShadow)" />
+          <text x="100" y="219" font-family="'Georgia', serif" font-weight="bold" font-size="12" fill="#ffd54f" text-anchor="middle" letter-spacing="2">HOLE IN ONE</text>
+          <text x="100" y="268" font-family="'Georgia', serif" font-weight="bold" font-size="42" fill="#d50000" text-anchor="middle" filter="url(#textShadow)">-5</text>
         `;
       } else if (value === 0) {
-        // Mulligan (0)
+        // Mulligan (0): Golden Sunshine & Golf Cart
         content = `
-          <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#fffde7" stroke="#fbc02d" stroke-width="3" />
-          <rect x="10" y="10" width="180" height="280" rx="10" ry="10" fill="none" stroke="#fbc02d" stroke-width="1.5" />
-          <text x="25" y="32" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="#f57f17" text-anchor="middle">0</text>
-          <text x="175" y="278" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="#f57f17" text-anchor="middle" transform="rotate(180 175 272)">0</text>
-          <g transform="translate(100, 130) scale(1.1)">
-            <path d="M -22 18 L 22 18 L 22 5 L 12 5 L 8 -13 L -12 -13 L -17 5 L -22 5 Z" fill="#cfd8dc" stroke="#90a4ae" stroke-width="1.5" />
-            <line x1="-10" y1="-13" x2="-10" y2="-25" stroke="#37474f" stroke-width="1.8" />
-            <line x1="6" y1="-13" x2="6" y2="-25" stroke="#37474f" stroke-width="1.8" />
-            <path d="M -16 -25 L 12 -25 L 8 -29 L -12 -29 Z" fill="#ffb74d" stroke="#f57c00" stroke-width="1.2" />
-            <circle cx="-12" cy="18" r="7" fill="#37474f" stroke="#212121" stroke-width="0.8" />
-            <circle cx="12" cy="18" r="7" fill="#37474f" stroke="#212121" stroke-width="0.8" />
-            <circle cx="-12" cy="18" r="2.5" fill="#ffffff" />
-            <circle cx="12" cy="18" r="2.5" fill="#ffffff" />
+          <!-- Card Base -->
+          <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="url(#mulliganCardGrad)" stroke="#fbc02d" stroke-width="3" />
+          <rect x="8" y="8" width="184" height="284" rx="10" ry="10" fill="none" stroke="#f57f17" stroke-width="1.8" />
+          <rect x="13" y="13" width="174" height="274" rx="8" ry="8" fill="none" stroke="#ffd54f" stroke-width="1" stroke-dasharray="4,3" />
+          
+          <!-- Corner Index Numbers -->
+          <text x="25" y="34" font-family="'Georgia', serif" font-weight="bold" font-size="22" fill="#e65100" text-anchor="middle">0</text>
+          <text x="175" y="278" font-family="'Georgia', serif" font-weight="bold" font-size="22" fill="#e65100" text-anchor="middle" transform="rotate(180 175 270)">0</text>
+          
+          <!-- Center Illustration: Stylized Modern Golf Cart with Sunbeams -->
+          <g transform="translate(100, 125) scale(1.15)">
+            <!-- Sunburst background circle -->
+            <circle cx="0" cy="0" r="38" fill="url(#sunburstGrad)" opacity="0.4" />
+            <!-- Cart Body -->
+            <path d="M -26 16 L 26 16 L 26 2 L 14 2 L 9 -18 L -14 -18 L -20 2 L -26 2 Z" fill="#37474f" stroke="#263238" stroke-width="1.8" />
+            <path d="M -18 2 L 12 2 L 8 -15 L -12 -15 Z" fill="#eceff1" opacity="0.75" />
+            <!-- Canopy & Frame -->
+            <line x1="-12" y1="-18" x2="-12" y2="-30" stroke="#212121" stroke-width="2.5" stroke-linecap="round" />
+            <line x1="8" y1="-18" x2="8" y2="-30" stroke="#212121" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M -18 -30 L 14 -30 L 10 -35 L -14 -35 Z" fill="url(#goldGradient)" stroke="#f57f17" stroke-width="1.5" />
+            <!-- Wheels with Alloy Rims -->
+            <circle cx="-14" cy="18" r="9" fill="#212121" stroke="#424242" stroke-width="1.5" />
+            <circle cx="14" cy="18" r="9" fill="#212121" stroke="#424242" stroke-width="1.5" />
+            <circle cx="-14" cy="18" r="4.5" fill="#cfd8dc" stroke="#90a4ae" stroke-width="1" />
+            <circle cx="14" cy="18" r="4.5" fill="#cfd8dc" stroke="#90a4ae" stroke-width="1" />
           </g>
-          <text x="100" y="225" font-family="'Courier New', monospace" font-weight="bold" font-size="13" fill="#f57f17" text-anchor="middle">MULLIGAN</text>
-          <text x="100" y="265" font-family="'Georgia', serif" font-weight="bold" font-size="34" fill="#f57f17" text-anchor="middle">0</text>
+          
+          <!-- Banner & Big Score -->
+          <rect x="25" y="202" width="150" height="26" rx="13" fill="#f57f17" stroke="#ffd54f" stroke-width="1.5" filter="url(#subtleShadow)" />
+          <text x="100" y="219" font-family="'Georgia', serif" font-weight="bold" font-size="12" fill="#ffffff" text-anchor="middle" letter-spacing="2">MULLIGAN</text>
+          <text x="100" y="268" font-family="'Georgia', serif" font-weight="bold" font-size="42" fill="#e65100" text-anchor="middle" filter="url(#textShadow)">0</text>
         `;
       } else {
-        // Values 1 to 12
-        let numColor = '#2e7d32'; // Green for 1-4
-        if (value >= 5 && value <= 8) numColor = '#ef6c00'; // Orange for 5-8
-        else if (value >= 9) numColor = '#c62828'; // Red for 9-12
+        // Values 1 to 12 with color tiers and 3D golf balls
+        let numColor = '#2e7d32'; // 1-4 (Green)
+        let strokeColor = '#1b5e20';
+        let bgGrad = 'url(#greenCardGrad)';
+        let tierLabel = 'PAR / BIRDIE';
+        
+        if (value >= 5 && value <= 8) {
+          numColor = '#e65100'; // 5-8 (Amber)
+          strokeColor = '#bf360c';
+          bgGrad = 'url(#amberCardGrad)';
+          tierLabel = 'BOGEY';
+        } else if (value >= 9) {
+          numColor = '#c62828'; // 9-12 (Red)
+          strokeColor = '#8e0000';
+          bgGrad = 'url(#redCardGrad)';
+          tierLabel = 'DOUBLE BOGEY';
+        }
 
-        // Helper to draw mini balls
+        // Generate 3D golf ball matrix
         let ballsHTML = '';
         const cols = Math.min(value, 6);
         const rows = Math.ceil(value / 6);
-        const spacing = 16;
+        const spacing = 18;
         const startX = -((cols - 1) * spacing) / 2;
         const startY = -((rows - 1) * spacing) / 2;
         for (let i = 0; i < value; i++) {
@@ -650,31 +758,104 @@
           const x = startX + col * spacing;
           const y = startY + row * spacing;
           ballsHTML += `
-            <circle cx="${x}" cy="${y}" r="5" fill="#ffffff" stroke="#b0bec5" stroke-width="0.8" />
-            <circle cx="${x - 1}" cy="${y - 1}" r="0.8" fill="#b0bec5" />
+            <g transform="translate(${x}, ${y})">
+              <circle cx="0" cy="0" r="6.5" fill="url(#golfBallGrad)" stroke="#b0bec5" stroke-width="0.8" />
+              <!-- Highlight dot -->
+              <circle cx="-2" cy="-2" r="1.5" fill="#ffffff" />
+            </g>
           `;
         }
 
         content = `
-          <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="#ffffff" stroke="#cfd8dc" stroke-width="2.5" />
-          <rect x="10" y="10" width="180" height="280" rx="10" ry="10" fill="none" stroke="${numColor}" stroke-width="1.5" />
-          <text x="25" y="32" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="${numColor}" text-anchor="middle">${value}</text>
-          <text x="175" y="278" font-family="'Georgia', serif" font-weight="bold" font-size="20" fill="${numColor}" text-anchor="middle" transform="rotate(180 175 272)">${value}</text>
-          <text x="100" y="140" font-family="'Georgia', serif" font-weight="bold" font-size="64" fill="${numColor}" text-anchor="middle">${value}</text>
-          <g transform="translate(100, 195)">
+          <!-- Card Base -->
+          <rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="${bgGrad}" stroke="${strokeColor}" stroke-width="2.5" />
+          <rect x="8" y="8" width="184" height="284" rx="10" ry="10" fill="none" stroke="${numColor}" stroke-width="1.5" />
+          
+          <!-- Corner Numbers -->
+          <text x="25" y="34" font-family="'Georgia', serif" font-weight="bold" font-size="22" fill="${numColor}" text-anchor="middle">${value}</text>
+          <text x="175" y="278" font-family="'Georgia', serif" font-weight="bold" font-size="22" fill="${numColor}" text-anchor="middle" transform="rotate(180 175 270)">${value}</text>
+          
+          <!-- Giant Hero Number in Center -->
+          <text x="100" y="132" font-family="'Georgia', serif" font-weight="bold" font-size="64" fill="${numColor}" text-anchor="middle" filter="url(#textShadow)">${value}</text>
+          
+          <!-- 3D Golf Balls Indicator -->
+          <g transform="translate(100, 185)">
             ${ballsHTML}
           </g>
+          
+          <!-- Bottom Tier Tag -->
+          <rect x="45" y="244" width="110" height="18" rx="9" fill="rgba(255,255,255,0.75)" stroke="${numColor}" stroke-width="0.8" />
+          <text x="100" y="257" font-family="'Georgia', serif" font-weight="bold" font-size="9" fill="${numColor}" text-anchor="middle" letter-spacing="1">${tierLabel}</text>
         `;
       }
     }
 
-    const selectedStyle = isSelected ? 'box-shadow: 0 0 20px #ffeb3b; transform: translateY(-18px); transition: all 0.25s;' : 'transition: all 0.25s;';
-    const borderHighlight = isSelected ? 'stroke="#ffeb3b" stroke-width="4"' : '';
+    const selectedStyle = isSelected ? 'filter: drop-shadow(0 0 15px #ffd54f); transform: translateY(-20px); transition: all 0.25s ease-out;' : 'transition: all 0.25s ease-out;';
+    const borderHighlight = isSelected ? 'stroke="#ffd54f" stroke-width="4"' : '';
     const cardTitle = !revealed ? 'Carta boca abajo' : `Carta de valor ${value}`;
 
     return `
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" class="card-svg ${customClass} ${isSelected ? 'selected' : ''}" style="width: 100%; height: 100%; display: block; ${selectedStyle}" title="${cardTitle}">
         <title>${cardTitle}</title>
+        <defs>
+          <radialGradient id="playNineBackGrad" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stop-color="#2e7d32" />
+            <stop offset="60%" stop-color="#1b5e20" />
+            <stop offset="100%" stop-color="#08250c" />
+          </radialGradient>
+          <linearGradient id="golfEmblemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1b5e20" />
+            <stop offset="100%" stop-color="#09280d" />
+          </linearGradient>
+          <radialGradient id="golfBallGrad" cx="35%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="60%" stop-color="#eceff1" />
+            <stop offset="100%" stop-color="#b0bec5" />
+          </radialGradient>
+          <linearGradient id="holeInOneCardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#f1f8e9" />
+            <stop offset="100%" stop-color="#dcedc8" />
+          </linearGradient>
+          <linearGradient id="mulliganCardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#fffde7" />
+            <stop offset="100%" stop-color="#fff9c4" />
+          </linearGradient>
+          <linearGradient id="greenCardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="100%" stop-color="#f1f8e9" />
+          </linearGradient>
+          <linearGradient id="amberCardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="100%" stop-color="#fff3e0" />
+          </linearGradient>
+          <linearGradient id="redCardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="100%" stop-color="#ffebee" />
+          </linearGradient>
+          <radialGradient id="sunburstGrad" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffd54f" />
+            <stop offset="100%" stop-color="rgba(255,213,79,0)" />
+          </radialGradient>
+          <radialGradient id="goldGradient" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+            <stop offset="0%" stop-color="#fffde7" />
+            <stop offset="45%" stop-color="#ffd54f" />
+            <stop offset="85%" stop-color="#ffb300" />
+            <stop offset="100%" stop-color="#b8860b" />
+          </radialGradient>
+          <linearGradient id="rubyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff5252" />
+            <stop offset="100%" stop-color="#c62828" />
+          </linearGradient>
+          <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.4" />
+          </filter>
+          <filter id="subtleShadow" x="-10%" y="-10%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.15" />
+          </filter>
+          <filter id="textShadow">
+            <feDropShadow dx="0" dy="1" stdDeviation="0.5" flood-color="#000000" flood-opacity="0.2" />
+          </filter>
+        </defs>
         ${content}
         ${borderHighlight ? `<rect x="2" y="2" width="196" height="296" rx="14" ry="14" fill="none" ${borderHighlight} />` : ''}
       </svg>
