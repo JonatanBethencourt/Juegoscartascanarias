@@ -977,20 +977,7 @@ body {
     display: none !important;
   }
 
-  /* Make other seat mini grids even larger and completely visible in Zen mode */
-  #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot:not(.local-player) .playnine-mini-grid {
-    display: grid !important;
-    grid-template-columns: repeat(4, 38px) !important;
-    gap: 2.5px !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-  }
-  #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot:not(.local-player) .playnine-mini-grid > div {
-    width: 38px !important;
-    height: 57px !important;
-  }
-
-  /* Played Card Slots size overrides in Zen Mode */
+  /* Played Card Slots size overrides in Zen Mode for Tute/Envido */
   #game-screen.not-my-turn:not(.show-hud-mobile) .player-spot:not(.local-player) .played-card-slot {
     width: 55px !important;
     height: 82px !important;
@@ -1271,25 +1258,6 @@ body {
   .not-my-turn .player-spot .played-card-slot {
     width: 50px;
     height: 75px;
-  }
-
-  /* Opponent Mini Cards Grid scaling on Mobile turns */
-  .my-turn .playnine-mini-grid {
-    grid-template-columns: repeat(4, 16px) !important;
-    gap: 1px !important;
-  }
-  .my-turn .playnine-mini-grid > div {
-    width: 16px !important;
-    height: 24px !important;
-  }
-
-  .not-my-turn .playnine-mini-grid {
-    grid-template-columns: repeat(4, 32px) !important;
-    gap: 1.5px !important;
-  }
-  .not-my-turn .playnine-mini-grid > div {
-    width: 32px !important;
-    height: 48px !important;
   }
 
   /* Footer Controls actions layout on Mobile */
